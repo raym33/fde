@@ -10,10 +10,14 @@ clave del aislamiento de datos y se propaga a RAG, store y auditoría.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import secrets
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.config import get_settings
+
+basic_security = HTTPBasic()
 
 
 @dataclass
@@ -58,3 +62,21 @@ def _decode_jwt(token: str, secret: str) -> dict:
         return jwt.decode(token, secret, algorithms=["HS256"])
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=401, detail="Token inválido") from exc
+
+
+async def require_admin_access(
+    credentials: HTTPBasicCredentials = Depends(basic_security),
+) -> dict:
+    settings = get_settings()
+    expected_username = settings.admin_basic_username
+    expected_password = settings.admin_basic_password
+    valid = secrets.compare_digest(credentials.username, expected_username) and secrets.compare_digest(
+        credentials.password, expected_password
+    )
+    if not valid:
+        raise HTTPException(
+            status_code=401,
+            detail="Credenciales de admin inválidas",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return {"username": credentials.username}

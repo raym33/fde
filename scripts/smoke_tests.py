@@ -8,6 +8,7 @@ static app shell.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 import time
@@ -30,11 +31,40 @@ class SmokeClient:
     def __init__(self, base_url: str, timeout: float) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.admin_auth = "Basic " + base64.b64encode(b"admin:change-me-admin").decode("ascii")
+
+    def _tenant_headers(self) -> dict[str, str]:
+        return {
+            "X-Tenant-Id": "smoke-tenant",
+            "X-User-Id": "smoke-tests",
+            "X-Client-Name": "Smoke SL",
+        }
+
+    def _admin_headers(self) -> dict[str, str]:
+        return {"Authorization": self.admin_auth}
 
     def get_json(self, path: str) -> dict[str, Any]:
         with urllib.request.urlopen(
             self.base_url + path, timeout=self.timeout
         ) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    def get_json_as_tenant(self, path: str) -> dict[str, Any]:
+        request = urllib.request.Request(
+            self.base_url + path,
+            headers=self._tenant_headers(),
+            method="GET",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    def get_json_as_admin(self, path: str) -> dict[str, Any]:
+        request = urllib.request.Request(
+            self.base_url + path,
+            headers=self._admin_headers(),
+            method="GET",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
             return json.loads(response.read().decode("utf-8"))
 
     def get_text(self, path: str) -> str:
@@ -59,12 +89,18 @@ class SmokeClient:
         request = urllib.request.Request(
             self.base_url + path,
             data=data,
-            headers={
-                "Content-Type": "application/json",
-                "X-Tenant-Id": "smoke-tenant",
-                "X-User-Id": "smoke-tests",
-                "X-Client-Name": "Smoke SL",
-            },
+            headers={"Content-Type": "application/json", **self._tenant_headers()},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    def post_json_as_admin(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        data = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            self.base_url + path,
+            data=data,
+            headers={"Content-Type": "application/json", **self._admin_headers()},
             method="POST",
         )
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
@@ -87,9 +123,7 @@ class SmokeClient:
             data=content,
             headers={
                 "Content-Type": f"multipart/form-data; boundary={boundary}",
-                "X-Tenant-Id": "smoke-tenant",
-                "X-User-Id": "smoke-tests",
-                "X-Client-Name": "Smoke SL",
+                **self._tenant_headers(),
             },
             method="POST",
         )
@@ -138,9 +172,7 @@ class SmokeClient:
             data=data,
             headers={
                 "Content-Type": "application/json",
-                "X-Tenant-Id": "smoke-tenant",
-                "X-User-Id": "smoke-tests",
-                "X-Client-Name": "Smoke SL",
+                **self._tenant_headers(),
             },
             method="POST",
         )
@@ -217,7 +249,7 @@ def main() -> int:
                     require(any(n.get("available") for n in data["nodes"]), "no LM Studio node available"),
                     ", ".join(data["nodes"][0].get("models", [])),
                 )[1]
-            )(client.get_json("/tools/lm-studio/status")),
+            )(client.get_json_as_tenant("/tools/lm-studio/status")),
         ),
         (
             "LM Studio completion",
@@ -227,7 +259,7 @@ def main() -> int:
                     data["response"].strip()[:80],
                 )[1]
             )(
-                client.get_json(
+                client.get_json_as_tenant(
                     "/tools/lm-studio/test?"
                     + urllib.parse.urlencode({"prompt": "responde solo con la palabra listo"})
                 )
@@ -240,7 +272,7 @@ def main() -> int:
                     require("provider" in data, "provider missing"),
                     f"provider={data['provider']}",
                 )[1]
-            )(client.get_json("/tools/web-search/status")),
+            )(client.get_json_as_tenant("/tools/web-search/status")),
         ),
         (
             "document parser status",
@@ -250,7 +282,7 @@ def main() -> int:
                     require(data["docx"] is True, "DOCX parser unavailable"),
                     "pdf/docx ok",
                 )[2]
-            )(client.get_json("/documents/status")),
+            )(client.get_json_as_tenant("/documents/status")),
         ),
         (
             "document upload + RAG ingest",
@@ -325,7 +357,7 @@ def main() -> int:
                     require(len(data["labs"]) >= 6, "expected at least 6 labs"),
                     f"labs={len(data['labs'])}",
                 )[1]
-            )(client.get_json("/labs/catalog")),
+            )(client.get_json_as_admin("/labs/catalog")),
         ),
         (
             "run RAG lab",
@@ -343,7 +375,7 @@ def main() -> int:
                         f"improvement={data['runs'][0]['improvement_pct']}%"
                     ),
                 )[4]
-            )(client.post_json("/labs/experiments/run", {"lab_id": "rag_grounding", "triggered_by": "smoke"})),
+            )(client.post_json_as_admin("/labs/experiments/run", {"lab_id": "rag_grounding", "triggered_by": "smoke"})),
         ),
         (
             "feature flags",
@@ -352,7 +384,7 @@ def main() -> int:
                     require("feature_flags" in data, "feature flags missing"),
                     f"flags={len(data['feature_flags'])}",
                 )[1]
-            )(client.get_json("/labs/feature-flags")),
+            )(client.get_json_as_admin("/labs/feature-flags")),
         ),
     ]
 

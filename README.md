@@ -12,6 +12,11 @@ System / fractional CAIO for SMEs. It is designed around one core idea:
 
 License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
 
+Default admin UI credentials in development:
+
+- username: `admin`
+- password: `change-me-admin`
+
 ## Why this exists
 
 Most SMEs do not need a generic chatbot. They need a repeatable AI
@@ -162,6 +167,12 @@ The app UI and Labs admin panel are served directly by FastAPI, so no Node or fr
 [http://127.0.0.1:8000/app](http://127.0.0.1:8000/app)
 
 [http://127.0.0.1:8000/admin/labs](http://127.0.0.1:8000/admin/labs)
+
+Security note:
+
+- `/app` is the operator/user workspace.
+- `/admin/labs` and `/labs/*` require admin Basic auth.
+- `/tools/*` and `/documents/status` require tenant/user authentication headers or a valid JWT.
 
 The CAIO chat supports:
 

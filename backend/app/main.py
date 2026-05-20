@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +17,7 @@ from app.api import (
 from app.api.labs import router as labs_router
 from app.config import get_settings
 from app.core.db import init_db
+from app.deps import require_admin_access
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 settings = get_settings()
@@ -62,7 +64,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/admin/labs", include_in_schema=False)
-def labs_admin() -> FileResponse:
+def labs_admin(_admin=Depends(require_admin_access)) -> FileResponse:
     return FileResponse(STATIC_DIR / "admin-labs.html")
 
 

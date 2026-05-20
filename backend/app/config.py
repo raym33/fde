@@ -74,6 +74,8 @@ class Settings(BaseSettings):
 
     # Auth y límites
     jwt_secret: str = "dev-secret-change-me"
+    admin_basic_username: str = "admin"
+    admin_basic_password: str = "change-me-admin"
     max_tokens_per_request: int = 8000
     max_agent_steps: int = 8
     data_region: str = "eu"

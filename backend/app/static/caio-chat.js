@@ -24,6 +24,15 @@ const intelExplorerCards = document.querySelector("#intelExplorerCards");
 let knowledgeBlocks = [];
 let selectedIntelBlock = null;
 
+function tenantHeaders(extra = {}) {
+  return {
+    "X-Tenant-Id": tenantId.value || "demo-tenant",
+    "X-User-Id": "web-user",
+    "X-Client-Name": clientName.value || tenantId.value || "Demo SL",
+    ...extra,
+  };
+}
+
 function setBusy(isBusy) {
   sendButton.disabled = isBusy;
   statePill.textContent = isBusy ? "Thinking" : "Ready";
@@ -243,9 +252,9 @@ document.addEventListener("click", (event) => {
 async function loadToolsStatus() {
   try {
     const [searchResponse, documentResponse, lmStudioResponse, knowledgeResponse] = await Promise.all([
-      fetch("/tools/web-search/status"),
-      fetch("/documents/status"),
-      fetch("/tools/lm-studio/status"),
+      fetch("/tools/web-search/status", { headers: tenantHeaders() }),
+      fetch("/documents/status", { headers: tenantHeaders() }),
+      fetch("/tools/lm-studio/status", { headers: tenantHeaders() }),
       fetch("/knowledge/updates/status"),
     ]);
     const status = await searchResponse.json();
@@ -296,11 +305,7 @@ uploadForm.addEventListener("submit", async (event) => {
     body.append("title", file.name);
     const response = await fetch("/documents", {
       method: "POST",
-      headers: {
-        "X-Tenant-Id": tenantId.value || "demo-tenant",
-        "X-User-Id": "web-user",
-        "X-Client-Name": clientName.value || tenantId.value || "Demo SL",
-      },
+      headers: tenantHeaders(),
       body,
     });
     const payload = await response.json();
@@ -337,11 +342,7 @@ knowledgeForm.addEventListener("submit", async (event) => {
     body.append("scope", "global");
     const response = await fetch("/knowledge/updates", {
       method: "POST",
-      headers: {
-        "X-Tenant-Id": tenantId.value || "demo-tenant",
-        "X-User-Id": "web-technician",
-        "X-Client-Name": clientName.value || tenantId.value || "Demo SL",
-      },
+      headers: tenantHeaders({ "X-User-Id": "web-technician" }),
       body,
     });
     const payload = await response.json();

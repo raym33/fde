@@ -14,7 +14,9 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 @router.get("/status")
-async def document_status() -> dict:
+async def document_status(
+    _principal: Principal = Depends(get_principal),
+) -> dict:
     return parser_status()
 
 
