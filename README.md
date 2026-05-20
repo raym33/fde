@@ -4,6 +4,8 @@ Backend scaffold for the VirtuDirector IA "forward-deployed AI engineer" labs la
 
 The labs continuously test one capability of the AI director product. When a lab finds a measurable improvement over the current baseline, it creates a structured Core Report. Reports require human approval before anything is marked as implemented.
 
+License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
+
 ## Labs
 
 - `rag_grounding`: retrieval quality, citation coverage, hallucination controls, tenant isolation.
