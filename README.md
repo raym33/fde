@@ -272,7 +272,12 @@ curl -X POST http://127.0.0.1:8000/knowledge/updates \
 
 curl http://127.0.0.1:8000/knowledge/updates/status
 curl 'http://127.0.0.1:8000/knowledge/briefs?q=rag%20costes%20modelos'
+curl 'http://127.0.0.1:8000/knowledge/blocks?limit_per_block=4'
 ```
+
+The `/app` workspace includes an **Explorador intel** panel that groups this
+knowledge into practical blocks such as `intel`, `dolores`, `roadmaps`,
+`stack` and sector-specific notes for health/public administration.
 
 ### Curated seed intel
 
@@ -286,10 +291,14 @@ day one. Import them into the local knowledge store with:
 
 ```bash
 backend/.venv/bin/python scripts/import_curated_intel.py --date 2026-05-20
+backend/.venv/bin/python scripts/recompact_knowledge_briefs.py
 ```
 
 The importer marks these entries as `curated_operator_intel` so they remain
 distinguishable from directly uploaded daily news or docs.
+
+The recompact script is safe to run after improving the summarization logic; it
+refreshes existing knowledge briefs in SQLite without duplicating source docs.
 
 Example:
 

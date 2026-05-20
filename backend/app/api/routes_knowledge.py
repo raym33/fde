@@ -136,3 +136,10 @@ async def list_knowledge_briefs(
     limit: int = Query(default=10, ge=1, le=50),
 ) -> dict:
     return {"briefs": updates.list_briefs(query=q, limit=limit)}
+
+
+@router.get("/blocks")
+async def list_knowledge_blocks(
+    limit_per_block: int = Query(default=8, ge=1, le=20),
+) -> dict:
+    return {"blocks": updates.list_blocks(limit_per_block=limit_per_block)}

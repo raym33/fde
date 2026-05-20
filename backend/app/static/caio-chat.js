@@ -17,6 +17,12 @@ const knowledgeTitle = document.querySelector("#knowledgeTitle");
 const knowledgeSourceUrl = document.querySelector("#knowledgeSourceUrl");
 const knowledgeButton = document.querySelector("#knowledgeButton");
 const knowledgeResult = document.querySelector("#knowledgeResult");
+const intelBlockTabs = document.querySelector("#intelBlockTabs");
+const intelBlocksMeta = document.querySelector("#intelBlocksMeta");
+const intelExplorerCards = document.querySelector("#intelExplorerCards");
+
+let knowledgeBlocks = [];
+let selectedIntelBlock = null;
 
 function setBusy(isBusy) {
   sendButton.disabled = isBusy;
@@ -64,6 +70,95 @@ function renderMarkdownLite(text) {
   html = html.replace(/\n\n/g, "</p><p>");
   html = `<p>${html}</p>`;
   return html.replaceAll("<p></p>", "");
+}
+
+function formatDate(dateValue) {
+  if (!dateValue) return "sin fecha";
+  try {
+    return new Date(dateValue).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return dateValue;
+  }
+}
+
+function buildBlockPrompt(blockId, brief) {
+  const title = brief?.title || "esta inteligencia";
+  const mapping = {
+    intel: `resume lo más útil para una pyme a partir de ${title} y conviértelo en recomendaciones accionables`,
+    dolores: `a partir de ${title}, dime qué dolores reales de pyme debería atacar primero y cómo vender la solución`,
+    roadmaps: `convierte ${title} en un roadmap de 90 días con quick wins, riesgos y ROI`,
+    stack: `explica el stack recomendado en ${title} y cuándo conviene local, cloud o híbrido`,
+    sector_publico_salud: `adapta ${title} a un plan de IA para hospital o ayuntamiento en España con riesgos y quick wins`,
+    otros: `analiza ${title} y extrae las mejores decisiones para VirtuDirector IA`,
+  };
+  return mapping[blockId] || mapping.otros;
+}
+
+function renderIntelExplorer() {
+  if (!intelBlockTabs || !intelExplorerCards || !intelBlocksMeta) return;
+  if (!knowledgeBlocks.length) {
+    intelBlockTabs.innerHTML = "";
+    intelExplorerCards.innerHTML = "";
+    intelBlocksMeta.textContent = "Todavía no hay bloques curados cargados.";
+    return;
+  }
+
+  const activeBlock =
+    knowledgeBlocks.find((block) => block.id === selectedIntelBlock) || knowledgeBlocks[0];
+  selectedIntelBlock = activeBlock.id;
+
+  intelBlockTabs.innerHTML = knowledgeBlocks
+    .map(
+      (block) => `
+        <button type="button" data-intel-block="${escapeHtml(block.id)}" aria-pressed="${block.id === activeBlock.id}">
+          ${escapeHtml(block.label)} (${block.count})
+        </button>
+      `
+    )
+    .join("");
+
+  intelBlocksMeta.textContent = `${activeBlock.label}: ${activeBlock.count} fichas disponibles. Mostrando las más recientes y compactadas.`;
+  intelExplorerCards.innerHTML = activeBlock.briefs
+    .map((brief) => {
+      const summary = escapeHtml((brief.summary || "").slice(0, 240));
+      const tags = Array.isArray(brief.tags) ? brief.tags.slice(0, 4) : [];
+      const prompt = escapeHtml(buildBlockPrompt(activeBlock.id, brief));
+      return `
+        <article class="intel-card">
+          <div class="intel-card-header">
+            <strong>${escapeHtml(brief.title)}</strong>
+            <span class="intel-card-meta">${escapeHtml(brief.source_type || "curated")} · ${escapeHtml(formatDate(brief.uploaded_at))}</span>
+          </div>
+          <p>${summary}</p>
+          <div class="intel-tags">
+            ${tags.map((tag) => `<span class="intel-tag">${escapeHtml(tag)}</span>`).join("")}
+          </div>
+          <div class="intel-card-actions">
+            <button type="button" data-prompt="${prompt}">Usar en chat</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function loadKnowledgeBlocks() {
+  if (!intelBlocksMeta) return;
+  intelBlocksMeta.textContent = "Cargando bloques curados...";
+  try {
+    const response = await fetch("/knowledge/blocks?limit_per_block=4");
+    const payload = await response.json();
+    knowledgeBlocks = payload.blocks || [];
+    renderIntelExplorer();
+  } catch (error) {
+    intelBlockTabs.innerHTML = "";
+    intelExplorerCards.innerHTML = "";
+    intelBlocksMeta.textContent = `No disponible: ${error.message}`;
+  }
 }
 
 async function sendMessage(message) {
@@ -138,6 +233,13 @@ document.addEventListener("click", (event) => {
   input.focus();
 });
 
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-intel-block]");
+  if (!button) return;
+  selectedIntelBlock = button.dataset.intelBlock;
+  renderIntelExplorer();
+});
+
 async function loadToolsStatus() {
   try {
     const [searchResponse, documentResponse, lmStudioResponse, knowledgeResponse] = await Promise.all([
@@ -176,6 +278,7 @@ async function loadToolsStatus() {
 }
 
 loadToolsStatus();
+loadKnowledgeBlocks();
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -251,6 +354,7 @@ knowledgeForm.addEventListener("submit", async (event) => {
       <div>${escapeHtml((payload.brief.summary || "").slice(0, 260))}</div>
     `;
     loadToolsStatus();
+    loadKnowledgeBlocks();
   } catch (error) {
     knowledgeResult.textContent = `Error: ${error.message}`;
   } finally {

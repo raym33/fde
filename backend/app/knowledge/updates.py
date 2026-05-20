@@ -54,6 +54,12 @@ class KnowledgeIngestResult:
     duplicate: bool = False
 
 
+@dataclass
+class KnowledgeRecompactResult:
+    refreshed: int
+    skipped: int
+
+
 def status() -> dict:
     with db() as conn:
         updates = conn.execute("SELECT COUNT(*) AS n FROM knowledge_updates").fetchone()["n"]
@@ -179,6 +185,13 @@ def compact_document(
     extracted: ExtractedDocument,
     source_url: str | None = None,
 ) -> dict:
+    if _looks_like_curated_markdown(title=title, extracted=extracted):
+        return _compact_curated_markdown(
+            title=title,
+            extracted=extracted,
+            source_url=source_url,
+        )
+
     text = _normalize(extracted.text)
     sentences = _sentences(text)
     tags = _tags(text)
@@ -223,6 +236,32 @@ def compact_document(
     }
 
 
+def list_blocks(limit_per_block: int = 8) -> list[dict]:
+    rows = list_briefs(query=None, limit=200)
+    buckets: dict[str, list[dict]] = {}
+    for brief in rows:
+        block = _infer_block(brief["title"], brief["source_type"])
+        enriched = dict(brief)
+        enriched["block"] = block
+        buckets.setdefault(block, []).append(enriched)
+
+    order = ["intel", "dolores", "roadmaps", "stack", "sector_publico_salud", "otros"]
+    out = []
+    for key in order:
+        items = buckets.get(key, [])
+        if not items:
+            continue
+        out.append(
+            {
+                "id": key,
+                "label": _block_label(key),
+                "count": len(items),
+                "briefs": items[:limit_per_block],
+            }
+        )
+    return out
+
+
 def list_updates(limit: int = 50) -> list[dict]:
     with db() as conn:
         rows = conn.execute(
@@ -236,6 +275,57 @@ def list_updates(limit: int = 50) -> list[dict]:
             (limit,),
         ).fetchall()
     return [_row_to_update(row) for row in rows]
+
+
+def recompact_all_briefs() -> KnowledgeRecompactResult:
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT u.id, u.title, u.source_url, u.raw_text, u.parser, u.metadata_json, u.warnings_json
+            FROM knowledge_updates u
+            ORDER BY u.uploaded_at DESC
+            """
+        ).fetchall()
+
+        refreshed = 0
+        skipped = 0
+        for row in rows:
+            extracted = ExtractedDocument(
+                text=row["raw_text"],
+                parser=row["parser"],
+                metadata=loads(row["metadata_json"], {}),
+                warnings=loads(row["warnings_json"], []),
+            )
+            compact = compact_document(
+                title=row["title"],
+                extracted=extracted,
+                source_url=row["source_url"],
+            )
+            updated = conn.execute(
+                """
+                UPDATE knowledge_briefs
+                SET summary = ?, key_points_json = ?, tags_json = ?,
+                    business_relevance = ?, technical_relevance = ?,
+                    risk_relevance = ?, compact_text = ?, created_at = ?
+                WHERE update_id = ?
+                """,
+                (
+                    compact["summary"],
+                    dumps(compact["key_points"]),
+                    dumps(compact["tags"]),
+                    compact["business_relevance"],
+                    compact["technical_relevance"],
+                    compact["risk_relevance"],
+                    compact["compact_text"],
+                    utc_now(),
+                    row["id"],
+                ),
+            )
+            if updated.rowcount:
+                refreshed += 1
+            else:
+                skipped += 1
+    return KnowledgeRecompactResult(refreshed=refreshed, skipped=skipped)
 
 
 def list_briefs(query: str | None = None, limit: int = 10) -> list[dict]:
@@ -398,6 +488,14 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _normalize_markdown_line(line: str) -> str:
+    text = line.strip()
+    text = re.sub(r"^#{1,6}\s*", "", text)
+    text = re.sub(r"^\-\s*", "", text)
+    text = re.sub(r"^\d+\.\s*", "", text)
+    return text.strip("` ").strip()
+
+
 def _sentences(text: str) -> list[str]:
     parts = re.split(r"(?<=[.!?])\s+", text)
     return [p.strip() for p in parts if len(p.strip()) > 30]
@@ -451,3 +549,161 @@ def _relevance(sentences: list[str], keywords: list[str], fallback: str) -> str:
         if any(keyword in low for keyword in keywords):
             return sentence[:500]
     return fallback
+
+
+def _looks_like_curated_markdown(*, title: str, extracted: ExtractedDocument) -> bool:
+    low_title = title.lower()
+    low_text = extracted.text.lower()
+    if extracted.metadata.get("format") == "text" and "#" in extracted.text:
+        return True
+    return (
+        "inteligencia" in low_title
+        or "roadmap" in low_title
+        or "dolores" in low_title
+        or "stack" in low_title
+        or "hospitales y ayuntamientos" in low_title
+        or "texto compacto" in low_text
+    )
+
+
+def _compact_curated_markdown(
+    *,
+    title: str,
+    extracted: ExtractedDocument,
+    source_url: str | None,
+) -> dict:
+    lines = [_normalize_markdown_line(line) for line in extracted.text.splitlines()]
+    lines = [line for line in lines if line and len(line) > 2]
+    tags = _tags(" ".join(lines))
+    normalized_title = _normalize_markdown_line(title).lower()
+    compact_title = re.sub(r"[\W_]+", " ", normalized_title).strip()
+
+    paragraphs = [line for line in lines if len(line) > 40]
+    summary_lines = []
+    for line in paragraphs:
+        low = line.lower()
+        low_compact = re.sub(r"[\W_]+", " ", low).strip()
+        if low == title.lower() or low_compact == compact_title or low_compact.startswith(compact_title):
+            continue
+        if low.startswith("naturaleza de la nota"):
+            continue
+        if any(low.startswith(prefix) for prefix in [
+            "texto compacto para guardar",
+            "fuente / cuenta",
+            "fecha aproximada",
+            "tema",
+            "nivel de confianza",
+            "requiere verificación",
+        ]):
+            continue
+        summary_lines.append(line)
+        if len(summary_lines) == 3:
+            break
+    summary = " ".join(summary_lines)[:900] if summary_lines else "Documento curado sin resumen legible."
+
+    key_points: list[str] = []
+    seen: set[str] = set()
+    for line in lines:
+        low = line.lower()
+        if low == title.lower():
+            continue
+        if low.startswith("naturaleza de la nota"):
+            continue
+        if any(token in low for token in [
+            "problema empresarial",
+            "solucion ia",
+            "quick win",
+            "modulo que lo resuelve",
+            "como venderlo",
+            "mensaje comercial",
+            "herramientas",
+            "riesgos",
+            "metrica",
+            "implicacion",
+            "oportunidad",
+            "stack",
+            "roadmap",
+            "r.a.g",
+            "rag ",
+        ]) or line.endswith(":"):
+            normalized = line[:280]
+            if normalized not in seen:
+                key_points.append(normalized)
+                seen.add(normalized)
+        if len(key_points) >= 6:
+            break
+    if not key_points:
+        key_points = paragraphs[:6]
+
+    business = _find_curated_relevance(
+        lines,
+        ["pyme", "hospital", "ayuntamiento", "roi", "cliente", "ciudadano", "ventas", "quick win"],
+        "Revisar impacto operativo y priorizacion por quick wins o ahorro real.",
+    )
+    technical = _find_curated_relevance(
+        lines,
+        ["ollama", "lm studio", "n8n", "rag", "qdrant", "chroma", "agente", "embedding"],
+        "Revisar stack tecnico, runtime local y arquitectura RAG recomendada.",
+    )
+    risk = _find_curated_relevance(
+        lines,
+        ["riesgo", "gdpr", "rgpd", "ai act", "privacidad", "alto riesgo", "trazabilidad", "supervision"],
+        "Revisar implicaciones de privacidad, AI Act, supervision humana y trazabilidad.",
+    )
+    compact_text = "\n".join(
+        [
+            f"Title: {title}",
+            f"Source URL: {source_url or 'not provided'}",
+            f"Tags: {', '.join(tags) or 'general'}",
+            f"Summary: {summary}",
+            "Key points:",
+            *[f"- {point}" for point in key_points[:6]],
+            f"Business relevance: {business}",
+            f"Technical relevance: {technical}",
+            f"Risk/GRC relevance: {risk}",
+        ]
+    )
+    return {
+        "summary": summary,
+        "key_points": key_points[:6],
+        "tags": tags,
+        "business_relevance": business,
+        "technical_relevance": technical,
+        "risk_relevance": risk,
+        "compact_text": compact_text[:5000],
+    }
+
+
+def _find_curated_relevance(lines: list[str], keywords: list[str], fallback: str) -> str:
+    for line in lines:
+        low = line.lower()
+        if any(keyword in low for keyword in keywords):
+            return line[:500]
+    return fallback
+
+
+def _infer_block(title: str, source_type: str) -> str:
+    low = f"{title} {source_type}".lower()
+    if "hospital" in low or "ayuntamiento" in low or "sanidad" in low or "health" in low:
+        return "sector_publico_salud"
+    if "dolor" in low:
+        return "dolores"
+    if "roadmap" in low or "iniciativa" in low:
+        return "roadmaps"
+    if "stack" in low or "implementacion" in low:
+        return "stack"
+    if "intel" in low or "novedad" in low or "update" in low:
+        return "intel"
+    return "otros"
+
+
+def _block_label(block_id: str) -> str:
+    labels = {
+        "intel": "Intel IA diaria",
+        "dolores": "Dolores detectados",
+        "roadmaps": "Roadmaps e iniciativas",
+        "stack": "Stack y runtimes",
+        "sector_publico_salud": "Hospitales y ayuntamientos",
+        "otros": "Otros",
+    }
+    return labels.get(block_id, block_id)

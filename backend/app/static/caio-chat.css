@@ -327,6 +327,113 @@ textarea {
   background: var(--accent-dark);
 }
 
+.intel-explorer {
+  gap: 10px;
+}
+
+.intel-block-meta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.intel-block-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.intel-block-tabs button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 820;
+}
+
+.intel-block-tabs button:hover,
+.intel-block-tabs button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: #eef6f3;
+  color: var(--ink);
+}
+
+.intel-cards {
+  display: grid;
+  gap: 8px;
+}
+
+.intel-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 11px;
+}
+
+.intel-card-header {
+  display: grid;
+  gap: 4px;
+}
+
+.intel-card-header strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.intel-card-meta {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.intel-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.intel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.intel-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid var(--line);
+  background: #f5f8f6;
+  color: var(--muted);
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.intel-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.intel-card-actions button {
+  min-height: 30px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.intel-card-actions button:hover {
+  border-color: var(--accent);
+  background: #eef6f3;
+}
+
 .operator-note ol {
   margin: 0;
   padding-left: 18px;

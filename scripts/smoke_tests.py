@@ -283,6 +283,17 @@ def main() -> int:
             )(client.get_json("/knowledge/briefs?q=rag%20costes%20pymes&limit=3")),
         ),
         (
+            "knowledge blocks",
+            lambda: (
+                lambda data: (
+                    require(data["blocks"], "no knowledge blocks returned"),
+                    require(any(block["id"] == "intel" for block in data["blocks"]), "intel block missing"),
+                    require(all(block["briefs"] for block in data["blocks"]), "empty block returned"),
+                    f"blocks={len(data['blocks'])}",
+                )[3]
+            )(client.get_json("/knowledge/blocks?limit_per_block=3")),
+        ),
+        (
             "opportunity diagnosis",
             lambda: (
                 lambda data: (
