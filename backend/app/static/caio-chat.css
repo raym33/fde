@@ -220,7 +220,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line-strong);
   background: #fff;
@@ -230,7 +231,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(36, 95, 91, 0.12);
 }
@@ -312,7 +314,8 @@ textarea {
 }
 
 .upload-form button,
-.composer button {
+.composer button,
+.scanner-form button {
   min-height: 40px;
   border: 1px solid var(--accent-dark);
   background: var(--accent);
@@ -323,8 +326,124 @@ textarea {
 }
 
 .upload-form button:hover,
-.composer button:hover {
+.composer button:hover,
+.scanner-form button:hover {
   background: var(--accent-dark);
+}
+
+.scanner-form {
+  display: grid;
+  gap: 10px;
+}
+
+.scanner-form textarea {
+  min-height: 180px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.scanner-result {
+  display: grid;
+  gap: 9px;
+}
+
+.scanner-summary {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 11px;
+}
+
+.scanner-summary strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.scanner-summary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.scanner-candidate {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 11px;
+}
+
+.scanner-candidate-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.scanner-candidate h3 {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.scanner-candidate p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.scanner-score {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid #c5d0df;
+  background: #eef3f8;
+  color: var(--blue);
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.scanner-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scanner-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid var(--line);
+  background: #f5f8f6;
+  color: var(--muted);
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.scanner-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.scanner-actions button {
+  min-height: 30px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.scanner-actions button:hover {
+  border-color: var(--accent);
+  background: #eef6f3;
 }
 
 .intel-explorer {

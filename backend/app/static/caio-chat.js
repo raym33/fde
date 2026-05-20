@@ -20,9 +20,24 @@ const knowledgeResult = document.querySelector("#knowledgeResult");
 const intelBlockTabs = document.querySelector("#intelBlockTabs");
 const intelBlocksMeta = document.querySelector("#intelBlocksMeta");
 const intelExplorerCards = document.querySelector("#intelExplorerCards");
+const processScannerForm = document.querySelector("#processScannerForm");
+const scannerObjective = document.querySelector("#scannerObjective");
+const scannerArtifacts = document.querySelector("#scannerArtifacts");
+const scannerRisk = document.querySelector("#scannerRisk");
+const scannerButton = document.querySelector("#scannerButton");
+const scannerResult = document.querySelector("#scannerResult");
 
 let knowledgeBlocks = [];
 let selectedIntelBlock = null;
+
+const DEFAULT_SCANNER_ARTIFACTS = `Procedimiento facturas | procedure | ERP | 300/mes
+Administración recibe facturas de proveedores por email, descarga PDF, copia importe, IVA, NIF e IBAN en Excel y valida manualmente en ERP.
+
+Emails repetitivos | email_sample | Outlook | 450/mes
+Clientes escriben al buzón de soporte preguntando por horarios, precios, estado de pedido y documentación. El equipo copia respuestas desde una FAQ.
+
+Export CRM | csv_export | CRM | 1200/mes
+CSV con clientes, pedidos, estado, fecha, comercial y notas. Se prepara un informe semanal en Excel con KPIs y anomalías.`;
 
 function tenantHeaders(extra = {}) {
   return {
@@ -105,6 +120,64 @@ function buildBlockPrompt(blockId, brief) {
     otros: `analiza ${title} y extrae las mejores decisiones para VirtuDirector IA`,
   };
   return mapping[blockId] || mapping.otros;
+}
+
+function parseScannerArtifacts(rawText) {
+  return rawText
+    .split(/\n\s*\n/)
+    .map((block, index) => {
+      const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+      if (!lines.length) return null;
+      const header = lines[0].split("|").map((part) => part.trim());
+      const text = lines.slice(1).join(" ") || lines[0];
+      const volumeMatch = (header[3] || "").match(/(\d+)/);
+      return {
+        name: header[0] || `Artefacto ${index + 1}`,
+        artifact_type: header[1] || "other",
+        system: header[2] || null,
+        volume_per_month: volumeMatch ? Number(volumeMatch[1]) : null,
+        text,
+      };
+    })
+    .filter(Boolean);
+}
+
+function renderScannerResult(payload) {
+  const result = payload?.result;
+  if (!result) {
+    scannerResult.textContent = "Sin resultado.";
+    return;
+  }
+  const candidates = (result.candidates || []).slice(0, 3);
+  scannerResult.innerHTML = `
+    <div class="scanner-summary">
+      <strong>${escapeHtml(result.readiness_label)}</strong>
+      <p>Sistemas: ${escapeHtml((result.process_map.systems || []).join(", ") || "no detectados")}</p>
+      <p>Procesos: ${escapeHtml((result.process_map.primary_processes || []).join(", ") || "no detectados")}</p>
+    </div>
+    ${candidates
+      .map(
+        (candidate) => `
+          <article class="scanner-candidate">
+            <div class="scanner-candidate-header">
+              <h3>${escapeHtml(candidate.title)}</h3>
+              <span class="scanner-score">${escapeHtml(candidate.score.total)}</span>
+            </div>
+            <p>${escapeHtml(candidate.problem)}</p>
+            <div class="scanner-pill-row">
+              <span class="scanner-pill">${escapeHtml(candidate.mode)}</span>
+              <span class="scanner-pill">${escapeHtml(candidate.recommended_phase)}</span>
+              <span class="scanner-pill">riesgo ${escapeHtml(candidate.score.risk)}</span>
+            </div>
+            <p>Sandbox: ${escapeHtml(candidate.first_sandbox.dataset)}</p>
+            <div class="scanner-actions">
+              <button type="button" data-prompt="${escapeHtml(`convierte el candidato ${candidate.title} en un plan de sandbox con métricas, riesgos y owners para ${clientName.value || "la empresa"}`)}">Plan sandbox</button>
+            </div>
+          </article>
+        `
+      )
+      .join("")}
+  `;
 }
 
 function renderIntelExplorer() {
@@ -289,6 +362,10 @@ async function loadToolsStatus() {
 loadToolsStatus();
 loadKnowledgeBlocks();
 
+if (scannerArtifacts && !scannerArtifacts.value.trim()) {
+  scannerArtifacts.value = DEFAULT_SCANNER_ARTIFACTS;
+}
+
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const file = documentFile.files?.[0];
@@ -361,5 +438,37 @@ knowledgeForm.addEventListener("submit", async (event) => {
   } finally {
     knowledgeButton.disabled = false;
     knowledgeFile.value = "";
+  }
+});
+
+processScannerForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const artifacts = parseScannerArtifacts(scannerArtifacts.value);
+  if (!artifacts.length) {
+    scannerResult.textContent = "Añade al menos un artefacto de proceso.";
+    return;
+  }
+
+  scannerButton.disabled = true;
+  scannerResult.textContent = "Analizando proceso y preparando sandbox...";
+  try {
+    const response = await fetch("/process-scanner/analyze", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        company_name: clientName.value || "Demo SL",
+        employee_count: 500,
+        objective: scannerObjective.value || "Detectar automatizaciones seguras",
+        risk_tolerance: scannerRisk.value || "medium",
+        artifacts,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    renderScannerResult(payload);
+  } catch (error) {
+    scannerResult.textContent = `Error: ${error.message}`;
+  } finally {
+    scannerButton.disabled = false;
   }
 });

@@ -69,6 +69,33 @@
             </div>
             <div id="toolsStatus" class="tools-status">Comprobando...</div>
           </section>
+
+          <section class="rail-section process-scanner-panel" aria-label="Escáner de procesos">
+            <div class="section-heading">
+              <span>04</span>
+              <h2>Process scanner</h2>
+            </div>
+            <form id="processScannerForm" class="scanner-form">
+              <label>
+                Objetivo
+                <input id="scannerObjective" value="Detectar automatizaciones seguras en administración y soporte" />
+              </label>
+              <label>
+                Artefactos
+                <textarea id="scannerArtifacts" rows="10"></textarea>
+              </label>
+              <label>
+                Riesgo
+                <select id="scannerRisk">
+                  <option value="low">Bajo</option>
+                  <option value="medium" selected>Medio</option>
+                  <option value="high">Alto</option>
+                </select>
+              </label>
+              <button id="scannerButton" type="submit">Analizar proceso</button>
+            </form>
+            <div id="scannerResult" class="scanner-result"></div>
+          </section>
         </aside>
 
         <section class="director-panel" aria-label="Director de IA">
@@ -107,7 +134,7 @@
         <aside class="asset-rail" aria-label="Datos y conocimiento">
           <section class="rail-section">
             <div class="section-heading">
-              <span>04</span>
+              <span>05</span>
               <h2>Documentos cliente</h2>
             </div>
             <form id="uploadForm" class="upload-form">
@@ -119,7 +146,7 @@
 
           <section class="rail-section">
             <div class="section-heading">
-              <span>05</span>
+              <span>06</span>
               <h2>Intel IA diaria</h2>
             </div>
             <form id="knowledgeForm" class="upload-form">
@@ -133,7 +160,7 @@
 
           <section class="rail-section intel-explorer">
             <div class="section-heading">
-              <span>06</span>
+              <span>07</span>
               <h2>Explorador intel</h2>
             </div>
             <div id="intelBlockTabs" class="intel-block-tabs" aria-label="Bloques de inteligencia"></div>
@@ -143,7 +170,7 @@
 
           <section class="rail-section operator-note">
             <div class="section-heading">
-              <span>07</span>
+              <span>08</span>
               <h2>Ciclo recomendado</h2>
             </div>
             <ol>
