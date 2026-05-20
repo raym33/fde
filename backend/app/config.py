@@ -5,8 +5,13 @@ Todas las opciones se leen de variables de entorno / .env. Ver `.env.example`.
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_SQLITE_PATH = PROJECT_ROOT / "data" / "virtudirector_labs.sqlite3"
 
 
 class Settings(BaseSettings):
@@ -60,6 +65,7 @@ class Settings(BaseSettings):
         "postgresql+psycopg://postgres:postgres@localhost:5432/virtudirector"
     )
     redis_url: str = "redis://localhost:6379/0"
+    labs_sqlite_path: str | None = None
 
     # Observabilidad
     langfuse_public_key: str | None = None
@@ -107,6 +113,12 @@ class Settings(BaseSettings):
         for url in urls:
             out.append(url.rstrip("/"))
         return out
+
+    @property
+    def sqlite_path(self) -> Path:
+        if self.labs_sqlite_path:
+            return Path(self.labs_sqlite_path).expanduser().resolve()
+        return DEFAULT_SQLITE_PATH
 
 
 @lru_cache
