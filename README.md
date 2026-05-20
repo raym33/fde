@@ -6,6 +6,21 @@ The labs continuously test one capability of the AI director product. When a lab
 
 License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
 
+## Quick commands
+
+```bash
+make venv
+make install
+make smoke
+make run
+```
+
+If the backend is already running locally, you can also verify the HTTP surface with:
+
+```bash
+make smoke-http
+```
+
 ## Labs
 
 - `rag_grounding`: retrieval quality, citation coverage, hallucination controls, tenant isolation.
