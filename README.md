@@ -274,6 +274,23 @@ curl http://127.0.0.1:8000/knowledge/updates/status
 curl 'http://127.0.0.1:8000/knowledge/briefs?q=rag%20costes%20modelos'
 ```
 
+### Curated seed intel
+
+Versioned curated intelligence can also live in the repo under:
+
+`backend/app/data/curated_intel/<YYYY-MM-DD>/`
+
+This is useful for importing analyst notes, pain-point research, roadmap
+initiatives or stack summaries that we want available locally in the app from
+day one. Import them into the local knowledge store with:
+
+```bash
+backend/.venv/bin/python scripts/import_curated_intel.py --date 2026-05-20
+```
+
+The importer marks these entries as `curated_operator_intel` so they remain
+distinguishable from directly uploaded daily news or docs.
+
 Example:
 
 ```bash
