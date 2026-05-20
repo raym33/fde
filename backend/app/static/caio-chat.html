@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VirtuDirector IA</title>
+    <link rel="stylesheet" href="/static/caio-chat.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">VirtuDirector IA</p>
+          <h1>Director de IA para pymes</h1>
+          <p class="subcopy">
+            Estrategia, soluciones puntuadas, RAG y gobierno IA con revisión y auditoría.
+          </p>
+        </div>
+
+        <section class="tenant-box" aria-label="Contexto del cliente">
+          <label>
+            Tenant
+            <input id="tenantId" value="demo-tenant" />
+          </label>
+          <label>
+            Cliente
+            <input id="clientName" value="Demo SL" />
+          </label>
+        </section>
+
+        <section>
+          <h2>Preguntas rápidas</h2>
+          <div class="prompt-list">
+            <button data-prompt="recomiéndame un chatbot barato para una pyme en España">Chatbot barato</button>
+            <button data-prompt="hazme un roadmap de IA de 90 días para una pyme de 500 empleados">Roadmap 90 días</button>
+            <button data-prompt="qué riesgos de EU AI Act debería revisar primero">EU AI Act</button>
+          </div>
+        </section>
+
+        <section class="tools-box">
+          <h2>Herramientas</h2>
+          <div id="toolsStatus" class="tools-status">Comprobando...</div>
+        </section>
+
+        <section class="tools-box">
+          <h2>Documentos</h2>
+          <form id="uploadForm" class="upload-form">
+            <input id="documentFile" type="file" accept=".txt,.md,.markdown,.docx,.pdf" />
+            <button id="uploadButton" type="submit">Subir a RAG</button>
+          </form>
+          <div id="uploadResult" class="tools-status"></div>
+        </section>
+
+        <section class="tools-box">
+          <h2>Inteligencia IA diaria</h2>
+          <form id="knowledgeForm" class="upload-form">
+            <input id="knowledgeFile" type="file" accept=".txt,.md,.markdown,.pdf" />
+            <input id="knowledgeTitle" placeholder="Título opcional" />
+            <input id="knowledgeSourceUrl" placeholder="URL fuente opcional" />
+            <button id="knowledgeButton" type="submit">Subir novedad</button>
+          </form>
+          <div id="knowledgeResult" class="tools-status"></div>
+        </section>
+
+        <a class="labs-link" href="/admin/labs">Abrir FDE Labs</a>
+      </aside>
+
+      <section class="chat-panel">
+        <header class="chat-header">
+          <div>
+            <h2>CAIO Chat</h2>
+            <p id="runtimeMode">Comprobando runtime local y herramientas conectadas...</p>
+          </div>
+          <span id="connectionState" class="state-pill">Ready</span>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite">
+          <article class="message assistant">
+            <div class="avatar">IA</div>
+            <div class="bubble">
+              <strong>Hola. Soy VirtuDirector IA.</strong>
+              <p>
+                Pídeme una solución, un roadmap, un análisis GRC o una recomendación con ROI.
+                Si preguntas por “chatbot barato”, el motor de soluciones puntuará opciones reales del catálogo.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <form id="chatForm" class="composer">
+          <textarea
+            id="messageInput"
+            rows="3"
+            placeholder="Pregunta algo: recomiéndame el mejor chatbot barato para España..."
+          ></textarea>
+          <button id="sendButton" type="submit">Enviar</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/static/caio-chat.js"></script>
+  </body>
+</html>

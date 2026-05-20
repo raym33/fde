@@ -1,0 +1,453 @@
+"""Daily AI intelligence knowledge base.
+
+Technicians upload TXT/MD/PDF files with fresh AI market, model, tooling or
+regulatory information. We keep the raw extracted text for auditability, but
+the app consumes compact briefs: summary, key points, tags and relevance notes.
+That compact layer is what prevents the core CAIO prompt from drowning in long
+documents.
+"""
+from __future__ import annotations
+
+import hashlib
+import re
+from collections import Counter
+from dataclasses import dataclass
+from uuid import uuid4
+
+from app.core.db import db, dumps, loads, utc_now
+from app.core.schemas import RetrievedChunk
+from app.ingest.document_parser import ExtractedDocument, parse_document
+from app.rag.ingest import ingest_document
+
+
+PLATFORM_KNOWLEDGE_TENANT_ID = "__platform_ai_intel__"
+
+TAG_KEYWORDS = {
+    "modelos": [
+        "llm", "modelo", "model", "gemma", "qwen", "llama", "deepseek",
+        "mistral", "embedding", "reranker", "open source",
+    ],
+    "agentes": ["agent", "agente", "workflow", "orquest", "tool", "mcp"],
+    "costes": ["precio", "pricing", "coste", "cost", "token", "gpu", "tco"],
+    "rag": ["rag", "retrieval", "vector", "chunk", "bm25", "pgvector"],
+    "grc": [
+        "eu ai act", "rgpd", "gdpr", "iso 42001", "nist", "compliance",
+        "governance", "riesgo", "risk",
+    ],
+    "seguridad": ["security", "seguridad", "privacy", "privacidad", "pii"],
+    "vendors": ["vendor", "proveedor", "api", "brave", "tavily", "perplexity"],
+    "pymes": ["pyme", "sme", "empresa mediana", "500 empleados", "españa"],
+}
+
+STOPWORDS = {
+    "para", "como", "with", "that", "this", "from", "into", "sobre", "entre",
+    "tambien", "también", "desde", "hasta", "cada", "donde", "when", "what",
+    "the", "and", "los", "las", "una", "uno", "por", "con", "del", "que",
+}
+
+
+@dataclass
+class KnowledgeIngestResult:
+    update: dict
+    brief: dict
+    rag_chunks: int
+    duplicate: bool = False
+
+
+def status() -> dict:
+    with db() as conn:
+        updates = conn.execute("SELECT COUNT(*) AS n FROM knowledge_updates").fetchone()["n"]
+        briefs = conn.execute("SELECT COUNT(*) AS n FROM knowledge_briefs").fetchone()["n"]
+        latest = conn.execute(
+            """
+            SELECT title, uploaded_at
+            FROM knowledge_updates
+            ORDER BY uploaded_at DESC
+            LIMIT 1
+            """
+        ).fetchone()
+    return {
+        "updates": updates,
+        "briefs": briefs,
+        "platform_tenant_id": PLATFORM_KNOWLEDGE_TENANT_ID,
+        "latest": dict(latest) if latest else None,
+    }
+
+
+async def ingest_update(
+    *,
+    raw: bytes,
+    filename: str,
+    content_type: str | None,
+    title: str | None,
+    source_url: str | None,
+    source_type: str,
+    scope: str,
+    uploaded_by: str,
+) -> KnowledgeIngestResult:
+    extracted = parse_document(raw, filename=filename, content_type=content_type)
+    content_hash = hashlib.sha256(extracted.text.encode("utf-8")).hexdigest()
+    existing = _find_by_hash(content_hash)
+    if existing:
+        return KnowledgeIngestResult(
+            update=existing,
+            brief=get_brief_for_update(existing["id"]) or {},
+            rag_chunks=0,
+            duplicate=True,
+        )
+
+    update_id = uuid4().hex
+    brief_id = uuid4().hex
+    resolved_title = (title or _infer_title(filename, extracted.text)).strip()
+    compact = compact_document(title=resolved_title, extracted=extracted, source_url=source_url)
+    now = utc_now()
+
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO knowledge_updates (
+                id, content_hash, title, filename, source_url, source_type,
+                scope, uploaded_by, uploaded_at, parser, raw_text, metadata_json,
+                warnings_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                update_id,
+                content_hash,
+                resolved_title,
+                filename,
+                source_url,
+                source_type,
+                scope,
+                uploaded_by,
+                now,
+                extracted.parser,
+                extracted.text,
+                dumps(extracted.metadata),
+                dumps(extracted.warnings),
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO knowledge_briefs (
+                id, update_id, title, summary, key_points_json, tags_json,
+                business_relevance, technical_relevance, risk_relevance,
+                compact_text, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                brief_id,
+                update_id,
+                resolved_title,
+                compact["summary"],
+                dumps(compact["key_points"]),
+                dumps(compact["tags"]),
+                compact["business_relevance"],
+                compact["technical_relevance"],
+                compact["risk_relevance"],
+                compact["compact_text"],
+                now,
+            ),
+        )
+
+    rag_chunks = await ingest_document(
+        tenant_id=PLATFORM_KNOWLEDGE_TENANT_ID,
+        document_id=update_id,
+        text=compact["compact_text"],
+        metadata={
+            "kind": "platform_knowledge_brief",
+            "title": resolved_title,
+            "source_url": source_url,
+            "source_type": source_type,
+            "scope": scope,
+            "tags": compact["tags"],
+        },
+    )
+    return KnowledgeIngestResult(
+        update=get_update(update_id) or {},
+        brief=get_brief_for_update(update_id) or {},
+        rag_chunks=rag_chunks,
+        duplicate=False,
+    )
+
+
+def compact_document(
+    *,
+    title: str,
+    extracted: ExtractedDocument,
+    source_url: str | None = None,
+) -> dict:
+    text = _normalize(extracted.text)
+    sentences = _sentences(text)
+    tags = _tags(text)
+    summary = _summary(sentences)
+    key_points = _key_points(sentences)
+    business = _relevance(
+        sentences,
+        ["roi", "coste", "precio", "productividad", "pyme", "cliente", "ventas", "soporte"],
+        "Impacto potencial en costes, productividad, ventas o servicio al cliente para pymes.",
+    )
+    technical = _relevance(
+        sentences,
+        ["modelo", "api", "rag", "agent", "embedding", "gpu", "latency", "latencia", "benchmark"],
+        "Revisar aplicabilidad técnica en routing de modelos, RAG, agentes o infraestructura.",
+    )
+    risk = _relevance(
+        sentences,
+        ["riesgo", "rgpd", "gdpr", "eu ai act", "seguridad", "privacy", "compliance", "licencia"],
+        "Revisar implicaciones de seguridad, licencia, privacidad y cumplimiento antes de recomendar.",
+    )
+    compact_text = "\n".join(
+        [
+            f"Title: {title}",
+            f"Source URL: {source_url or 'not provided'}",
+            f"Tags: {', '.join(tags) or 'general'}",
+            f"Summary: {summary}",
+            "Key points:",
+            *[f"- {point}" for point in key_points],
+            f"Business relevance: {business}",
+            f"Technical relevance: {technical}",
+            f"Risk/GRC relevance: {risk}",
+        ]
+    )
+    return {
+        "summary": summary,
+        "key_points": key_points,
+        "tags": tags,
+        "business_relevance": business,
+        "technical_relevance": technical,
+        "risk_relevance": risk,
+        "compact_text": compact_text[:5000],
+    }
+
+
+def list_updates(limit: int = 50) -> list[dict]:
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, title, filename, source_url, source_type, scope,
+                   uploaded_by, uploaded_at, parser, metadata_json, warnings_json
+            FROM knowledge_updates
+            ORDER BY uploaded_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [_row_to_update(row) for row in rows]
+
+
+def list_briefs(query: str | None = None, limit: int = 10) -> list[dict]:
+    if query:
+        return _rank_briefs(query, limit)
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT b.*, u.source_url, u.source_type, u.uploaded_at
+            FROM knowledge_briefs b
+            JOIN knowledge_updates u ON u.id = b.update_id
+            ORDER BY u.uploaded_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [_row_to_brief(row) for row in rows]
+
+
+def retrieve_knowledge(query: str, top_k: int = 4) -> list[RetrievedChunk]:
+    briefs = _rank_briefs(query, top_k)
+    return [
+        RetrievedChunk(
+            chunk_id=brief["id"],
+            document_id=brief["update_id"],
+            text=brief["compact_text"],
+            score=brief["score"],
+            metadata={
+                "source": "platform_knowledge",
+                "title": brief["title"],
+                "tags": brief["tags"],
+                "source_url": brief.get("source_url"),
+                "uploaded_at": brief.get("uploaded_at"),
+            },
+        )
+        for brief in briefs
+        if brief["score"] > 0
+    ]
+
+
+def get_update(update_id: str) -> dict | None:
+    with db() as conn:
+        row = conn.execute(
+            """
+            SELECT id, title, filename, source_url, source_type, scope,
+                   uploaded_by, uploaded_at, parser, metadata_json, warnings_json
+            FROM knowledge_updates
+            WHERE id = ?
+            """,
+            (update_id,),
+        ).fetchone()
+    return _row_to_update(row) if row else None
+
+
+def get_brief_for_update(update_id: str) -> dict | None:
+    with db() as conn:
+        row = conn.execute(
+            """
+            SELECT b.*, u.source_url, u.source_type, u.uploaded_at
+            FROM knowledge_briefs b
+            JOIN knowledge_updates u ON u.id = b.update_id
+            WHERE b.update_id = ?
+            """,
+            (update_id,),
+        ).fetchone()
+    return _row_to_brief(row) if row else None
+
+
+def _find_by_hash(content_hash: str) -> dict | None:
+    with db() as conn:
+        row = conn.execute(
+            """
+            SELECT id, title, filename, source_url, source_type, scope,
+                   uploaded_by, uploaded_at, parser, metadata_json, warnings_json
+            FROM knowledge_updates
+            WHERE content_hash = ?
+            """,
+            (content_hash,),
+        ).fetchone()
+    return _row_to_update(row) if row else None
+
+
+def _rank_briefs(query: str, limit: int) -> list[dict]:
+    tokens = _tokens(query)
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT b.*, u.source_url, u.source_type, u.uploaded_at
+            FROM knowledge_briefs b
+            JOIN knowledge_updates u ON u.id = b.update_id
+            ORDER BY u.uploaded_at DESC
+            LIMIT 250
+            """
+        ).fetchall()
+    ranked = []
+    for row in rows:
+        brief = _row_to_brief(row)
+        haystack = " ".join(
+            [
+                brief["title"],
+                brief["summary"],
+                brief["compact_text"],
+                " ".join(brief["tags"]),
+            ]
+        )
+        hay_tokens = Counter(_tokens(haystack))
+        lexical = sum(hay_tokens[t] for t in tokens)
+        tag_bonus = 2 * len(set(tokens) & set(_tokens(" ".join(brief["tags"]))))
+        score = float(lexical + tag_bonus)
+        brief["score"] = score
+        ranked.append(brief)
+    ranked.sort(key=lambda item: (item["score"], item["uploaded_at"]), reverse=True)
+    return ranked[:limit]
+
+
+def _row_to_update(row) -> dict:
+    return {
+        "id": row["id"],
+        "title": row["title"],
+        "filename": row["filename"],
+        "source_url": row["source_url"],
+        "source_type": row["source_type"],
+        "scope": row["scope"],
+        "uploaded_by": row["uploaded_by"],
+        "uploaded_at": row["uploaded_at"],
+        "parser": row["parser"],
+        "metadata": loads(row["metadata_json"], {}),
+        "warnings": loads(row["warnings_json"], []),
+    }
+
+
+def _row_to_brief(row) -> dict:
+    return {
+        "id": row["id"],
+        "update_id": row["update_id"],
+        "title": row["title"],
+        "summary": row["summary"],
+        "key_points": loads(row["key_points_json"], []),
+        "tags": loads(row["tags_json"], []),
+        "business_relevance": row["business_relevance"],
+        "technical_relevance": row["technical_relevance"],
+        "risk_relevance": row["risk_relevance"],
+        "compact_text": row["compact_text"],
+        "created_at": row["created_at"],
+        "source_url": row["source_url"],
+        "source_type": row["source_type"],
+        "uploaded_at": row["uploaded_at"],
+        "score": float(row["score"]) if "score" in row.keys() else 0.0,
+    }
+
+
+def _infer_title(filename: str, text: str) -> str:
+    first = next((line.strip() for line in text.splitlines() if line.strip()), "")
+    if first and len(first) <= 120:
+        return first.lstrip("# ").strip()
+    return filename
+
+
+def _normalize(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _sentences(text: str) -> list[str]:
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    return [p.strip() for p in parts if len(p.strip()) > 30]
+
+
+def _tokens(text: str) -> list[str]:
+    return [
+        token
+        for token in re.findall(r"[a-záéíóúüñ0-9][a-záéíóúüñ0-9.-]{2,}", text.lower())
+        if token not in STOPWORDS
+    ]
+
+
+def _tags(text: str) -> list[str]:
+    low = text.lower()
+    tags = [tag for tag, kws in TAG_KEYWORDS.items() if any(kw in low for kw in kws)]
+    if not tags:
+        common = [word for word, _ in Counter(_tokens(text)).most_common(3)]
+        return common or ["general"]
+    return tags
+
+
+def _summary(sentences: list[str]) -> str:
+    selected = sentences[:3]
+    if not selected:
+        return "Documento sin texto suficiente para resumen fiable."
+    return " ".join(selected)[:900]
+
+
+def _key_points(sentences: list[str]) -> list[str]:
+    priority_terms = [
+        "lanz", "nuevo", "precio", "benchmark", "mejora", "riesgo",
+        "cumpl", "modelo", "agent", "rag", "api", "cost", "roi",
+    ]
+    scored = []
+    for sentence in sentences:
+        low = sentence.lower()
+        score = sum(1 for term in priority_terms if term in low)
+        score += min(2, len(re.findall(r"\d", sentence)))
+        scored.append((score, sentence))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    points = [sentence for score, sentence in scored if score > 0][:6]
+    if len(points) < 3:
+        points.extend(sentences[: 3 - len(points)])
+    return [point[:360] for point in points[:6]]
+
+
+def _relevance(sentences: list[str], keywords: list[str], fallback: str) -> str:
+    for sentence in sentences:
+        low = sentence.lower()
+        if any(keyword in low for keyword in keywords):
+            return sentence[:500]
+    return fallback

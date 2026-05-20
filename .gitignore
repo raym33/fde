@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+/data/
+backend/audit.log.jsonl
+backend/.env
+backend/app/data/solutions_contributions.jsonl
+*.sqlite
+*.sqlite3
+*.db
+.DS_Store

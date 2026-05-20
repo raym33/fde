@@ -1,0 +1,136 @@
+{
+  "_comment": "Catálogo curado de soluciones. Editable por humanos (control de versiones). Las cifras de ROI son estimaciones de referencia para una pyme ~500 empleados y deben ajustarse con datos reales del cliente. scorecard: 1-5 (coste/esfuerzo/riesgo/tiempo_a_valor son inversas: 5 = mucho coste/esfuerzo/etc.).",
+  "use_cases": [
+    {
+      "id": "chatbot_soporte",
+      "label": "Chatbot de atención al cliente / soporte",
+      "keywords": ["chatbot", "chat bot", "bot", "atención", "atencion", "soporte", "faq", "whatsapp", "asistente virtual", "tickets", "help desk", "helpdesk"],
+      "options": [
+        {
+          "id": "chatbot_oss_selfhost",
+          "title": "Chatbot RAG con LLM open source (auto-gestionado, UE)",
+          "summary": "Asistente sobre tus FAQs/documentos usando un LLM open source vía API de inferencia en la UE, con widget web y WhatsApp Business. Máximo control de costes y datos en España/UE.",
+          "approach": "build",
+          "budget_tier": "bajo",
+          "tools": [
+            {"name": "Qwen3 / Llama 4 (vía DeepInfra o Together)", "vendor": "DeepInfra/Together", "kind": "open_source", "monthly_cost_eur": [50, 250], "eu_hosting": true, "spanish_support": true, "notes": "Pago por tokens; coste muy bajo a este volumen. Pide región UE y no-entrenamiento."},
+            {"name": "LibreChat / Chatwoot", "vendor": "Open source", "kind": "open_source", "monthly_cost_eur": [0, 0], "eu_hosting": true, "spanish_support": true, "notes": "Orquestación de chat y bandeja unificada; self-host en VPS UE (~20-60€/mes)."},
+            {"name": "WhatsApp Business Platform", "vendor": "Meta", "kind": "saas", "monthly_cost_eur": [0, 80], "eu_hosting": false, "spanish_support": true, "notes": "Coste por conversación; canal clave en España."}
+          ],
+          "scorecard": {"impacto": 4, "coste": 2, "esfuerzo": 3, "riesgo": 3, "tiempo_a_valor": 2, "cumplimiento": 4},
+          "roi": {"setup_cost_eur": 3500, "monthly_cost_eur": 300, "annual_benefit_eur": 45000, "payback_months": 1.0, "confidence": 60, "assumptions": ["Desvío del 30-40% de tickets de nivel 1", "Volumen ~3.000 consultas/mes", "Coste pleno de un agente de soporte ~28-32k€/año"]},
+          "implementation": [
+            {"name": "Ingesta de FAQs/documentos y diseño de flujos", "weeks": 2, "owner": "humano+IA", "deliverable": "Base de conocimiento + flujos de conversación"},
+            {"name": "Integración web + WhatsApp y pruebas", "weeks": 2, "owner": "humano+IA", "deliverable": "Chatbot en piloto con 1 canal"},
+            {"name": "Piloto supervisado y ajuste", "weeks": 3, "owner": "humano", "deliverable": "Métricas de desvío y calidad; paso a producción"}
+          ],
+          "risks": ["Respuestas incorrectas si la base de conocimiento está desactualizada", "Necesita escalado a humano bien diseñado", "Gestión de prompt injection en contenido recuperado"]
+        },
+        {
+          "id": "chatbot_saas_gestionado",
+          "title": "Plataforma de chatbot gestionada (SaaS europeo)",
+          "summary": "Plataforma conversacional llave en mano: menos esfuerzo de ingeniería, despliegue rápido, soporte y mantenimiento incluidos.",
+          "approach": "buy",
+          "budget_tier": "medio",
+          "tools": [
+            {"name": "Plataforma SaaS de IA conversacional (UE)", "vendor": "Varios (evaluar 2-3)", "kind": "saas", "monthly_cost_eur": [500, 1500], "eu_hosting": true, "spanish_support": true, "notes": "Elegir proveedor con hosting UE y DPA; comparar por canal y volumen."}
+          ],
+          "scorecard": {"impacto": 4, "coste": 3, "esfuerzo": 2, "riesgo": 2, "tiempo_a_valor": 1, "cumplimiento": 3},
+          "roi": {"setup_cost_eur": 2000, "monthly_cost_eur": 900, "annual_benefit_eur": 60000, "payback_months": 0.5, "confidence": 65, "assumptions": ["Desvío 35-45% de tickets", "Puesta en marcha en 2-4 semanas", "Menor coste de mantenimiento interno"]},
+          "implementation": [
+            {"name": "Selección de proveedor (RFP corta) y DPA", "weeks": 2, "owner": "humano", "deliverable": "Proveedor elegido + contrato/DPA"},
+            {"name": "Configuración, contenidos y branding", "weeks": 2, "owner": "humano+IA", "deliverable": "Chatbot configurado"},
+            {"name": "Piloto y go-live", "weeks": 2, "owner": "humano", "deliverable": "Producción multicanal"}
+          ],
+          "risks": ["Dependencia de proveedor (lock-in)", "Coste crece con el volumen", "Menos control sobre el modelo"]
+        },
+        {
+          "id": "chatbot_enterprise_ccai",
+          "title": "Suite enterprise de Contact Center AI",
+          "summary": "Solución integral (voz + chat + analítica) integrada con el contact center. Máxima capacidad, máximo coste.",
+          "approach": "buy",
+          "budget_tier": "alto",
+          "tools": [
+            {"name": "Suite CCAI enterprise", "vendor": "Hyperscaler/CRM líder", "kind": "saas", "monthly_cost_eur": [3000, 8000], "eu_hosting": true, "spanish_support": true, "notes": "Justificable solo con alto volumen de contactos."}
+          ],
+          "scorecard": {"impacto": 5, "coste": 5, "esfuerzo": 4, "riesgo": 2, "tiempo_a_valor": 3, "cumplimiento": 4},
+          "roi": {"setup_cost_eur": 25000, "monthly_cost_eur": 5000, "annual_benefit_eur": 140000, "payback_months": 4.0, "confidence": 55, "assumptions": ["Alto volumen (>20k contactos/mes)", "Integración con CRM existente", "Reducción de AHT y desvío combinados"]},
+          "implementation": [
+            {"name": "Diseño e integración con CRM/telefonía", "weeks": 8, "owner": "humano+IA", "deliverable": "Arquitectura integrada"},
+            {"name": "Despliegue por fases y formación", "weeks": 8, "owner": "humano", "deliverable": "Producción + equipo formado"}
+          ],
+          "risks": ["Sobre-dimensionado para volúmenes bajos", "Proyecto de integración largo", "Coste fijo elevado"]
+        }
+      ]
+    },
+    {
+      "id": "lead_scoring",
+      "label": "Scoring predictivo de leads / priorización comercial",
+      "keywords": ["lead", "leads", "scoring", "ventas", "comercial", "crm", "priorizar", "conversión", "conversion", "pipeline"],
+      "options": [
+        {
+          "id": "lead_oss_ml",
+          "title": "Modelo de scoring sobre datos del CRM (open source)",
+          "summary": "Modelo de ML entrenado con el histórico del CRM para priorizar leads, desplegado como servicio que escribe la puntuación de vuelta en el CRM.",
+          "approach": "build",
+          "budget_tier": "bajo",
+          "tools": [
+            {"name": "scikit-learn / XGBoost", "vendor": "Open source", "kind": "open_source", "monthly_cost_eur": [0, 0], "eu_hosting": true, "spanish_support": true, "notes": "Entrenamiento en VPS UE modesto."},
+            {"name": "Conector CRM", "vendor": "Tu CRM", "kind": "saas", "monthly_cost_eur": [0, 100], "eu_hosting": true, "spanish_support": true, "notes": "API del CRM existente."}
+          ],
+          "scorecard": {"impacto": 4, "coste": 2, "esfuerzo": 3, "riesgo": 3, "tiempo_a_valor": 3, "cumplimiento": 4},
+          "roi": {"setup_cost_eur": 6000, "monthly_cost_eur": 150, "annual_benefit_eur": 70000, "payback_months": 1.1, "confidence": 50, "assumptions": ["+10-15% de conversión por mejor priorización", "Histórico de CRM suficiente y limpio"]},
+          "implementation": [
+            {"name": "Preparación de datos y features", "weeks": 3, "owner": "humano+IA", "deliverable": "Dataset y features"},
+            {"name": "Entrenamiento y validación", "weeks": 2, "owner": "IA", "deliverable": "Modelo validado"},
+            {"name": "Despliegue e integración CRM", "weeks": 2, "owner": "humano+IA", "deliverable": "Scoring en producción"}
+          ],
+          "risks": ["Calidad/cantidad de datos históricos", "Sesgos en datos comerciales", "Deriva del modelo (reentrenar)"]
+        },
+        {
+          "id": "lead_saas_predictivo",
+          "title": "Scoring predictivo gestionado (add-on del CRM)",
+          "summary": "Funcionalidad nativa o add-on del CRM que ofrece scoring predictivo sin construir el modelo.",
+          "approach": "buy",
+          "budget_tier": "medio",
+          "tools": [
+            {"name": "Add-on predictivo del CRM", "vendor": "Tu CRM", "kind": "saas", "monthly_cost_eur": [400, 1200], "eu_hosting": true, "spanish_support": true, "notes": "Verifica residencia de datos UE."}
+          ],
+          "scorecard": {"impacto": 4, "coste": 3, "esfuerzo": 2, "riesgo": 2, "tiempo_a_valor": 1, "cumplimiento": 3},
+          "roi": {"setup_cost_eur": 1500, "monthly_cost_eur": 800, "annual_benefit_eur": 65000, "payback_months": 0.3, "confidence": 60, "assumptions": ["+8-12% de conversión", "Activación rápida"]},
+          "implementation": [
+            {"name": "Activación y configuración", "weeks": 2, "owner": "humano", "deliverable": "Scoring activo"},
+            {"name": "Ajuste con equipo comercial", "weeks": 2, "owner": "humano", "deliverable": "Adopción y umbrales"}
+          ],
+          "risks": ["Caja negra (menos explicabilidad)", "Coste por usuario/volumen", "Dependencia del proveedor"]
+        }
+      ]
+    },
+    {
+      "id": "busqueda_documental",
+      "label": "Búsqueda y Q&A sobre documentación interna (RAG)",
+      "keywords": ["documentos", "documental", "buscador", "rag", "conocimiento", "knowledge base", "intranet", "manuales", "procedimientos", "q&a", "preguntas"],
+      "options": [
+        {
+          "id": "rag_oss",
+          "title": "Buscador semántico + Q&A open source sobre tus documentos",
+          "summary": "Indexa la documentación interna y permite preguntas en lenguaje natural con citas, usando embeddings y LLM open source en la UE.",
+          "approach": "build",
+          "budget_tier": "bajo",
+          "tools": [
+            {"name": "pgvector / Qdrant", "vendor": "Open source", "kind": "open_source", "monthly_cost_eur": [0, 60], "eu_hosting": true, "spanish_support": true, "notes": "Self-host en UE."},
+            {"name": "LLM + embeddings open source (API UE)", "vendor": "DeepInfra/Together", "kind": "open_source", "monthly_cost_eur": [60, 300], "eu_hosting": true, "spanish_support": true, "notes": "Pago por uso."}
+          ],
+          "scorecard": {"impacto": 4, "coste": 2, "esfuerzo": 3, "riesgo": 2, "tiempo_a_valor": 2, "cumplimiento": 5},
+          "roi": {"setup_cost_eur": 5000, "monthly_cost_eur": 250, "annual_benefit_eur": 55000, "payback_months": 1.2, "confidence": 55, "assumptions": ["Ahorro de 2-3 h/empleado/mes en búsqueda de información", "Adopción en áreas clave"]},
+          "implementation": [
+            {"name": "Ingesta y permisos por área", "weeks": 2, "owner": "humano+IA", "deliverable": "Índice con control de acceso"},
+            {"name": "Interfaz de Q&A con citas", "weeks": 2, "owner": "humano+IA", "deliverable": "Buscador en piloto"},
+            {"name": "Despliegue y formación", "weeks": 2, "owner": "humano", "deliverable": "Producción"}
+          ],
+          "risks": ["Control de acceso por documento", "Datos sensibles/PII", "Calidad de las citas"]
+        }
+      ]
+    }
+  ]
+}
