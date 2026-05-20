@@ -23,6 +23,7 @@ from app.core.schemas import (
     RetrievedChunk,
     VerifierVerdict,
 )
+from app.core import opportunities
 from app.core.solutions import engine as solutions_engine
 from app.core.verifier import verify
 from app.knowledge.updates import retrieve_knowledge
@@ -30,6 +31,22 @@ from app.rag.retriever import retrieve
 
 # El orden importa: se devuelve la primera intención con keyword coincidente.
 _INTENT_KEYWORDS = {
+    Intent.OPPORTUNITY: [
+        "donde implementar ia", "dónde implementar ia", "donde aplicar ia",
+        "dónde aplicar ia", "donde usar ia", "dónde usar ia",
+        "implementar ia", "implantar ia", "aplicar ia", "meter ia",
+        "donde debería implementar", "dónde debería implementar",
+        "donde deberia implementar", "dónde deberia implementar",
+        "donde deberíamos implementar", "dónde deberíamos implementar",
+        "donde deberiamos implementar", "dónde deberiamos implementar",
+        "en qué áreas", "en que áreas", "en que areas", "en qué areas",
+        "oportunidades de ia", "mapa de oportunidades", "descubrir oportunidades",
+        "casos de uso", "caso de uso", "use cases", "use case",
+        "por dónde empezar", "por donde empezar", "diagnóstico ia",
+        "diagnostico ia", "consultoría ia", "consultoria ia",
+        "qué procesos automatizar", "que procesos automatizar",
+        "procesos para ia", "departamentos para ia",
+    ],
     Intent.GRC: ["rgpd", "gdpr", "ai act", "cumplimiento", "compliance",
                  "iso 42001", "nist", "política de", "regulación", "governance",
                  "readiness", "auditoría de"],
@@ -64,7 +81,7 @@ async def classify_intent(message: str) -> Intent:
 
     prompt = (
         "Classify the user request into exactly one label: "
-        "quick, strategy, grc, research, build, deliverable. "
+        "quick, strategy, grc, research, build, solution, opportunity, deliverable. "
         "Reply with only the label.\n\nRequest: " + message
     )
     raw = (
@@ -108,6 +125,13 @@ async def run_stream(message: str, tenant_id: str, *, client_name: str):
     if intent == Intent.SOLUTION:
         async for ev in _run_solution(
             message, tenant_id, chunks, client_name=client_name, region=region
+        ):
+            yield ev
+        return
+
+    if intent == Intent.OPPORTUNITY:
+        async for ev in _run_opportunity(
+            message, chunks, client_name=client_name, region=region
         ):
             yield ev
         return
@@ -305,6 +329,75 @@ async def _run_solution(
             "intent": Intent.SOLUTION.value,
             "use_case": proposal.use_case,
             "recommended": proposal.recommended_id,
+            "verified": verdict.approved,
+        },
+    )
+
+
+async def _run_opportunity(
+    message: str,
+    chunks: list[RetrievedChunk],
+    *,
+    client_name: str,
+    region: str,
+):
+    """Diagnostica dónde implementar IA dentro de una pyme."""
+    settings = get_settings()
+    yield ChatChunk(
+        type="status",
+        data="Diagnosticando áreas de la empresa y oportunidades IA…",
+    )
+    diagnosis = opportunities.diagnose_opportunities(
+        message,
+        chunks,
+        client_name=client_name,
+    )
+    yield ChatChunk(
+        type="status",
+        data=(
+            f"{len(diagnosis.top_opportunities)} oportunidades priorizadas · "
+            f"{len(diagnosis.quick_wins)} quick wins · "
+            f"perfil: {diagnosis.company_size}"
+        ),
+    )
+    final = opportunities.render_markdown(diagnosis)
+
+    if settings.demo_mode:
+        verdict = VerifierVerdict(approved=True)
+    else:
+        yield ChatChunk(type="status", data="Verificando el mapa de oportunidades…")
+        verdict = await verify(
+            message, final, chunks, client_name=client_name, data_region=region
+        )
+        final = verdict.revised_answer or final
+        if not verdict.approved and verdict.issues:
+            yield ChatChunk(
+                type="status",
+                data="El verificador marcó observaciones (registradas en auditoría).",
+                meta={"issues": verdict.issues},
+            )
+
+    for token in _tokenize(final):
+        yield ChatChunk(type="token", data=token)
+        await asyncio.sleep(0)
+
+    seen: set[str] = set()
+    for opportunity in diagnosis.top_opportunities[:5]:
+        for citation in opportunity.citations:
+            if citation.source_id not in seen:
+                seen.add(citation.source_id)
+                yield ChatChunk(
+                    type="citation",
+                    data=citation.source_id,
+                    meta=citation.model_dump(),
+                )
+
+    yield ChatChunk(
+        type="final",
+        data="",
+        meta={
+            "intent": Intent.OPPORTUNITY.value,
+            "top_opportunities": [o.id for o in diagnosis.top_opportunities[:5]],
             "verified": verdict.approved,
         },
     )

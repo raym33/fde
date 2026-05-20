@@ -54,6 +54,22 @@ class SmokeClient:
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
             return json.loads(response.read().decode("utf-8"))
 
+    def post_json_as_tenant(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        data = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            self.base_url + path,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "X-Tenant-Id": "smoke-tenant",
+                "X-User-Id": "smoke-tests",
+                "X-Client-Name": "Smoke SL",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
     def post_multipart_text_document(self) -> dict[str, Any]:
         boundary = "----VirtuDirectorSmokeBoundary"
         content = (
@@ -265,6 +281,31 @@ def main() -> int:
                     f"briefs={len(data['briefs'])}",
                 )[1]
             )(client.get_json("/knowledge/briefs?q=rag%20costes%20pymes&limit=3")),
+        ),
+        (
+            "opportunity diagnosis",
+            lambda: (
+                lambda data: (
+                    require(data["diagnosis"]["top_opportunities"], "no opportunities returned"),
+                    require(
+                        data["diagnosis"]["top_opportunities"][0]["score"]["total"] > 0,
+                        "opportunity score missing",
+                    ),
+                    require("Mapa de oportunidades IA" in data["markdown"], "markdown report missing"),
+                    (
+                        f"top={data['diagnosis']['top_opportunities'][0]['id']} "
+                        f"score={data['diagnosis']['top_opportunities'][0]['score']['total']}"
+                    ),
+                )[3]
+            )(
+                client.post_json_as_tenant(
+                    "/opportunities/diagnose",
+                    {
+                        "question": "dónde debería implementar IA primero en una pyme de 500 empleados",
+                        "employee_count": 500,
+                    },
+                )
+            ),
         ),
         (
             "labs catalog",

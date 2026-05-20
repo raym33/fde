@@ -16,6 +16,7 @@ class Intent(str, Enum):
     RESEARCH = "research"      # requiere datos externos al día
     BUILD = "build"            # diseñar un agente/workflow
     SOLUTION = "solution"      # proponer la mejor solución a una pregunta
+    OPPORTUNITY = "opportunity"  # descubrir dónde implementar IA en la empresa
     DELIVERABLE = "deliverable"  # entregable ejecutivo completo
 
 
@@ -27,6 +28,7 @@ INTENT_AGENTS: dict[Intent, list[str]] = {
     Intent.RESEARCH: ["investigador"],
     Intent.BUILD: ["constructor"],
     Intent.SOLUTION: [],        # gestionado por el motor de soluciones
+    Intent.OPPORTUNITY: [],     # gestionado por el motor de discovery
     Intent.DELIVERABLE: ["investigador", "estratega", "grc"],
 }
 

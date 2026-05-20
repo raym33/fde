@@ -10,6 +10,7 @@ from app.api import (
     routes_documents,
     routes_health,
     routes_knowledge,
+    routes_opportunities,
     routes_tools,
 )
 from app.api.labs import router as labs_router
@@ -54,6 +55,7 @@ app.include_router(routes_health.router)
 app.include_router(routes_chat.router)
 app.include_router(routes_documents.router)
 app.include_router(routes_knowledge.router)
+app.include_router(routes_opportunities.router)
 app.include_router(routes_tools.router)
 app.include_router(labs_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

@@ -61,6 +61,7 @@ Useful endpoints:
 - `GET /app`
 - `GET /admin/labs`
 - `POST /chat`
+- `POST /opportunities/diagnose`
 - `POST /documents`
 - `GET /knowledge/use-cases`
 - `POST /knowledge/solutions`
@@ -91,9 +92,38 @@ The app UI and Labs admin panel are served directly by FastAPI, so no Node or fr
 The CAIO chat supports:
 
 - Streaming chat via `/chat`.
-- Intent routing into strategy, GRC, research, build and solution flows.
+- Intent routing into strategy, GRC, research, build, solution and opportunity-discovery flows.
+- AI opportunity diagnosis for questions like “dónde implementar IA primero”.
 - Deterministic solution recommendations with scorecards and ROI.
 - Tenant-scoped RAG in demo mode.
+
+## AI Opportunity Discovery
+
+Many SMEs do not know where AI should be implemented first. The
+`opportunity` workflow creates a deterministic consulting-style map:
+
+`company question + client RAG + daily AI intelligence -> area opportunities -> scorecard -> 90-day roadmap`
+
+The score is computed in code from impact, effort, data readiness, risk,
+time-to-value and strategic fit. The LLM may add narrative in non-demo mode, but
+it does not invent the ranking.
+
+API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/opportunities/diagnose \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: tester' \
+  -H 'X-Client-Name: Demo SL' \
+  -d '{"question":"dónde debería implementar IA primero en una pyme de 500 empleados","employee_count":500}'
+```
+
+Natural chat examples:
+
+- “Dónde debería implementar IA primero en una pyme de 500 empleados.”
+- “Hazme un mapa de oportunidades IA por departamentos.”
+- “Qué procesos debería automatizar con IA antes de invertir fuerte.”
 
 The Labs panel supports:
 
