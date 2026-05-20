@@ -351,6 +351,62 @@ def main() -> int:
             ),
         ),
         (
+            "process scanner",
+            lambda: (
+                lambda data: (
+                    require(data["result"]["candidates"], "no automation candidates returned"),
+                    require(data["result"]["process_map"]["systems"], "no systems detected"),
+                    require("AI Implementation Scanner" in data["markdown"], "scanner markdown missing"),
+                    (
+                        f"top={data['result']['candidates'][0]['id']} "
+                        f"score={data['result']['candidates'][0]['score']['total']}"
+                    ),
+                )[3]
+            )(
+                client.post_json_as_tenant(
+                    "/process-scanner/analyze",
+                    {
+                        "company_name": "Smoke SL",
+                        "employee_count": 500,
+                        "objective": "Detectar automatizaciones seguras en administración y soporte",
+                        "risk_tolerance": "low",
+                        "artifacts": [
+                            {
+                                "name": "Procedimiento de facturas",
+                                "artifact_type": "procedure",
+                                "system": "ERP",
+                                "volume_per_month": 300,
+                                "text": (
+                                    "Administración recibe facturas de proveedores por email, descarga PDF, "
+                                    "copia importe, IVA, NIF e IBAN en Excel y luego valida manualmente en ERP."
+                                ),
+                            },
+                            {
+                                "name": "Emails repetitivos",
+                                "artifact_type": "email_sample",
+                                "system": "Outlook",
+                                "volume_per_month": 450,
+                                "text": (
+                                    "Clientes escriben al buzón de soporte preguntando por horarios, precios, "
+                                    "estado de pedido y documentación. El equipo copia respuestas desde una FAQ."
+                                ),
+                            },
+                            {
+                                "name": "Export CRM",
+                                "artifact_type": "csv_export",
+                                "system": "CRM",
+                                "volume_per_month": 1200,
+                                "text": (
+                                    "CSV con clientes, pedidos, estado, fecha, comercial y notas. "
+                                    "Se prepara un informe semanal en Excel con KPIs y anomalías."
+                                ),
+                            },
+                        ],
+                    },
+                )
+            ),
+        ),
+        (
             "labs catalog",
             lambda: (
                 lambda data: (

@@ -141,6 +141,7 @@ Useful endpoints:
 - `GET /admin/labs`
 - `POST /chat`
 - `POST /opportunities/diagnose`
+- `POST /process-scanner/analyze`
 - `POST /documents`
 - `GET /knowledge/use-cases`
 - `POST /knowledge/solutions`
@@ -231,6 +232,47 @@ The Labs panel supports:
 - Converting approved reports into staged core changes.
 - Applying staged changes as feature flags.
 - Viewing recent measured lab runs.
+
+## AI Implementation Scanner
+
+The process scanner is the first step toward a broader "scanner + sandbox"
+implementation workflow. It does not discover or modify live systems. It takes
+process artifacts provided by a technician or client and turns them into:
+
+- an operational process map,
+- systems/data/actors detected from the artifacts,
+- automation candidates,
+- deployability scores,
+- sandbox-first evaluation plans,
+- governance notes and missing context.
+
+API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/process-scanner/analyze \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: tester' \
+  -H 'X-Client-Name: Demo SL' \
+  -d '{
+    "company_name":"Demo SL",
+    "employee_count":500,
+    "risk_tolerance":"low",
+    "artifacts":[
+      {
+        "name":"Facturas proveedores",
+        "artifact_type":"procedure",
+        "system":"ERP",
+        "volume_per_month":300,
+        "text":"Administración recibe facturas por email, copia campos en Excel y valida manualmente en ERP."
+      }
+    ]
+  }'
+```
+
+The design principle is deliberately conservative:
+
+`artifact intake -> process map -> automation candidate -> sandbox plan -> measured go/no-go -> human approval`
 
 ## Labs-to-Core Promotion
 
