@@ -1,10 +1,48 @@
 # VirtuDirector IA - FDE Labs
 
-Backend scaffold for the VirtuDirector IA "forward-deployed AI engineer" labs layer.
+Forward-deployed AI engineering lab for SME AI implementation: opportunity
+diagnosis, tenant-scoped RAG, local/LAN model routing, continuous evaluation
+and human-approved promotion of measured improvements.
 
-The labs continuously test one capability of the AI director product. When a lab finds a measurable improvement over the current baseline, it creates a structured Core Report. Reports require human approval before anything is marked as implemented.
+This repository is the working lab behind **VirtuDirector IA**, an AI Operating
+System / fractional CAIO for SMEs. It is designed around one core idea:
+
+> AI systems for real companies should not change just because a model suggested
+> a better answer. They should be measured, reviewed and promoted with evidence.
 
 License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
+
+## Why this exists
+
+Most SMEs do not need a generic chatbot. They need a repeatable AI
+implementation process that answers:
+
+1. Where should we apply AI first?
+2. Which tasks should stay local for privacy or cost?
+3. How do we connect internal documents safely?
+4. How do we compare RAG, agents and model-routing changes over time?
+5. How do we keep humans in control before production changes?
+
+This repo is that lab.
+
+## What this proves
+
+This project demonstrates the ability to:
+
+- build FastAPI backends for AI products,
+- diagnose AI opportunities for SMEs with deterministic scoring,
+- run tenant-scoped RAG with document ingestion and retrieval evaluation,
+- route workloads between local/LAN and frontier-style models,
+- evaluate agent, GRC and market-intelligence improvements as measured labs,
+- promote changes through `report -> approval -> feature flag -> implemented`,
+- keep a curated intelligence layer available to the product at runtime.
+
+## Current scope
+
+This is a serious MVP / lab, not a finished SaaS platform. Some capabilities are
+already measured end to end; others still use modeled proxies where full eval
+infrastructure would be excessive for the current stage. That distinction is
+called out explicitly below.
 
 ## Quick commands
 
@@ -20,6 +58,14 @@ If the backend is already running locally, you can also verify the HTTP surface 
 ```bash
 make smoke-http
 ```
+
+## Fast product walkthrough
+
+1. Upload client documents into tenant-scoped RAG.
+2. Ask the CAIO workbench where AI should be implemented first.
+3. Review deterministic scorecards and a 90-day roadmap.
+4. Run labs that compare baseline vs candidate behavior.
+5. Approve only improvements backed by evidence.
 
 ## Labs
 
@@ -56,10 +102,21 @@ does not beat the measured baseline above threshold.
 ## Run a Smoke Test
 
 ```bash
-python3 scripts/smoke_labs.py
+make smoke
 ```
 
 This creates a local SQLite DB at `./data/virtudirector_labs.sqlite3`, runs all labs, stores runs and proposed reports, then approves one report.
+
+Expected output shape:
+
+```text
+Catalog: 6 labs
+Runs: 6
+Reports proposed: N
+- rag_grounding: ...
+- model_routing_cost: ...
+OK
+```
 
 ## Run the API
 
@@ -113,6 +170,18 @@ The CAIO chat supports:
 - AI opportunity diagnosis for questions like “dónde implementar IA primero”.
 - Deterministic solution recommendations with scorecards and ROI.
 - Tenant-scoped RAG in demo mode.
+
+## Suggested demo flow
+
+If you are reviewing this repo as a CTO, client or hiring team, the shortest
+path to understanding it is:
+
+1. `make smoke`
+2. `make run`
+3. Open `/app`
+4. Ask: `dónde debería implementar IA primero en una pyme de 500 empleados`
+5. Open `/admin/labs`
+6. Run a lab and inspect the proposed report
 
 ## AI Opportunity Discovery
 
@@ -246,11 +315,7 @@ cd backend
 ```
 
 Then open `http://<this-mac-lan-ip>:8000/app` from the other computer. On this
-Mac the current LAN IP detected during setup was `10.93.255.95`, so the URL is:
-
-```text
-http://10.93.255.95:8000/app
-```
+Mac the LAN IP will depend on the network you are on.
 
 For each LM Studio worker machine, enable its local server and expose it on the
 LAN, then add that machine to `LM_STUDIO_REMOTE_BASE_URLS`. Keep this on a
