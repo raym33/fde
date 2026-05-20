@@ -7,95 +7,143 @@
     <link rel="stylesheet" href="/static/caio-chat.css" />
   </head>
   <body>
-    <main class="shell">
-      <aside class="sidebar">
-        <div>
-          <p class="eyebrow">VirtuDirector IA</p>
-          <h1>Director de IA para pymes</h1>
-          <p class="subcopy">
-            Estrategia, soluciones puntuadas, RAG y gobierno IA con revisión y auditoría.
-          </p>
-        </div>
-
-        <section class="tenant-box" aria-label="Contexto del cliente">
-          <label>
-            Tenant
-            <input id="tenantId" value="demo-tenant" />
-          </label>
-          <label>
-            Cliente
-            <input id="clientName" value="Demo SL" />
-          </label>
-        </section>
-
-        <section>
-          <h2>Preguntas rápidas</h2>
-          <div class="prompt-list">
-            <button data-prompt="recomiéndame un chatbot barato para una pyme en España">Chatbot barato</button>
-            <button data-prompt="dónde debería implementar IA primero en una pyme de 500 empleados">Dónde aplicar IA</button>
-            <button data-prompt="hazme un roadmap de IA de 90 días para una pyme de 500 empleados">Roadmap 90 días</button>
-            <button data-prompt="qué riesgos de EU AI Act debería revisar primero">EU AI Act</button>
-          </div>
-        </section>
-
-        <section class="tools-box">
-          <h2>Herramientas</h2>
-          <div id="toolsStatus" class="tools-status">Comprobando...</div>
-        </section>
-
-        <section class="tools-box">
-          <h2>Documentos</h2>
-          <form id="uploadForm" class="upload-form">
-            <input id="documentFile" type="file" accept=".txt,.md,.markdown,.docx,.pdf" />
-            <button id="uploadButton" type="submit">Subir a RAG</button>
-          </form>
-          <div id="uploadResult" class="tools-status"></div>
-        </section>
-
-        <section class="tools-box">
-          <h2>Inteligencia IA diaria</h2>
-          <form id="knowledgeForm" class="upload-form">
-            <input id="knowledgeFile" type="file" accept=".txt,.md,.markdown,.pdf" />
-            <input id="knowledgeTitle" placeholder="Título opcional" />
-            <input id="knowledgeSourceUrl" placeholder="URL fuente opcional" />
-            <button id="knowledgeButton" type="submit">Subir novedad</button>
-          </form>
-          <div id="knowledgeResult" class="tools-status"></div>
-        </section>
-
-        <a class="labs-link" href="/admin/labs">Abrir FDE Labs</a>
-      </aside>
-
-      <section class="chat-panel">
-        <header class="chat-header">
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup" aria-label="VirtuDirector IA">
+          <span class="brand-mark">VD</span>
           <div>
-            <h2>CAIO Chat</h2>
-            <p id="runtimeMode">Comprobando runtime local y herramientas conectadas...</p>
+            <strong>VirtuDirector IA</strong>
+            <span>AI Operating System para pymes</span>
           </div>
-          <span id="connectionState" class="state-pill">Ready</span>
-        </header>
-
-        <div id="messages" class="messages" aria-live="polite">
-          <article class="message assistant">
-            <div class="avatar">IA</div>
-            <div class="bubble">
-              <strong>Hola. Soy VirtuDirector IA.</strong>
-              <p>
-                Pídeme una solución, un roadmap, un análisis GRC o una recomendación con ROI.
-                Si preguntas “dónde implementar IA”, generaré un mapa priorizado de oportunidades por áreas.
-              </p>
-            </div>
-          </article>
         </div>
+        <nav class="top-nav" aria-label="Vistas">
+          <a aria-current="page" href="/app">Director</a>
+          <a href="/admin/labs">FDE Labs</a>
+          <a href="/docs">API</a>
+        </nav>
+        <span id="connectionState" class="state-pill">Ready</span>
+      </header>
 
-        <form id="chatForm" class="composer">
-          <textarea
-            id="messageInput"
-            rows="3"
-            placeholder="Pregunta algo: dónde debería implementar IA primero en mi pyme..."
-          ></textarea>
-          <button id="sendButton" type="submit">Enviar</button>
-        </form>
+      <section class="workspace">
+        <aside class="control-rail" aria-label="Controles del workspace">
+          <section class="rail-section client-context" aria-label="Contexto del cliente">
+            <div class="section-heading">
+              <span>01</span>
+              <h2>Cliente</h2>
+            </div>
+            <label>
+              Tenant
+              <input id="tenantId" value="demo-tenant" />
+            </label>
+            <label>
+              Empresa
+              <input id="clientName" value="Demo SL" />
+            </label>
+          </section>
+
+          <section class="rail-section" aria-label="Trabajos habituales">
+            <div class="section-heading">
+              <span>02</span>
+              <h2>Trabajos</h2>
+            </div>
+            <div class="prompt-list">
+              <button data-prompt="dónde debería implementar IA primero en una pyme de 500 empleados">
+                Diagnóstico de oportunidades
+              </button>
+              <button data-prompt="hazme un roadmap de IA de 90 días para una pyme de 500 empleados">
+                Roadmap 90 días
+              </button>
+              <button data-prompt="recomiéndame un chatbot barato para una pyme en España">
+                Solución low-cost
+              </button>
+              <button data-prompt="qué riesgos de EU AI Act debería revisar primero">
+                Riesgo y gobierno
+              </button>
+            </div>
+          </section>
+
+          <section class="rail-section" aria-label="Herramientas conectadas">
+            <div class="section-heading">
+              <span>03</span>
+              <h2>Runtime</h2>
+            </div>
+            <div id="toolsStatus" class="tools-status">Comprobando...</div>
+          </section>
+        </aside>
+
+        <section class="director-panel" aria-label="Director de IA">
+          <header class="work-header">
+            <div>
+              <p class="eyebrow">CAIO Chat Workbench</p>
+              <h1>Decidir dónde aplicar IA, con ROI y control de riesgo</h1>
+            </div>
+            <p id="runtimeMode">Comprobando modelos locales y herramientas...</p>
+          </header>
+
+          <div id="messages" class="messages" aria-live="polite">
+            <article class="message assistant">
+              <div class="avatar">VD</div>
+              <div class="bubble">
+                <strong>Listo para priorizar oportunidades de IA.</strong>
+                <p>
+                  Empieza por un diagnóstico de procesos, una solución concreta,
+                  un roadmap o una revisión GRC. El sistema usará RAG del cliente,
+                  inteligencia curada y scoring determinista cuando haya que priorizar.
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <form id="chatForm" class="composer">
+            <textarea
+              id="messageInput"
+              rows="3"
+              placeholder="Ejemplo: dónde debería implementar IA primero en mi pyme de 500 empleados"
+            ></textarea>
+            <button id="sendButton" type="submit">Enviar</button>
+          </form>
+        </section>
+
+        <aside class="asset-rail" aria-label="Datos y conocimiento">
+          <section class="rail-section">
+            <div class="section-heading">
+              <span>04</span>
+              <h2>Documentos cliente</h2>
+            </div>
+            <form id="uploadForm" class="upload-form">
+              <input id="documentFile" type="file" accept=".txt,.md,.markdown,.docx,.pdf" />
+              <button id="uploadButton" type="submit">Indexar en RAG</button>
+            </form>
+            <div id="uploadResult" class="tools-status"></div>
+          </section>
+
+          <section class="rail-section">
+            <div class="section-heading">
+              <span>05</span>
+              <h2>Intel IA diaria</h2>
+            </div>
+            <form id="knowledgeForm" class="upload-form">
+              <input id="knowledgeFile" type="file" accept=".txt,.md,.markdown,.pdf" />
+              <input id="knowledgeTitle" placeholder="Título" />
+              <input id="knowledgeSourceUrl" placeholder="URL fuente" />
+              <button id="knowledgeButton" type="submit">Compactar novedad</button>
+            </form>
+            <div id="knowledgeResult" class="tools-status"></div>
+          </section>
+
+          <section class="rail-section operator-note">
+            <div class="section-heading">
+              <span>06</span>
+              <h2>Ciclo recomendado</h2>
+            </div>
+            <ol>
+              <li>Subir documentos del cliente.</li>
+              <li>Subir novedades IA verificadas.</li>
+              <li>Diagnosticar oportunidades.</li>
+              <li>Convertir quick wins en pilotos medibles.</li>
+            </ol>
+          </section>
+        </aside>
       </section>
     </main>
 
