@@ -35,6 +35,7 @@ def _seed_foundations() -> None:
         ROOT / "backend/app/data/curated_intel/fundamentos/01-fundamentos-diagnostico-pyme.md",
         ROOT / "backend/app/data/curated_intel/fundamentos/02-playbook-local-vs-cloud.md",
         ROOT / "backend/app/data/curated_intel/fundamentos/03-biblioteca-quick-wins-sectoriales.md",
+        ROOT / "backend/app/data/curated_intel/fundamentos/04-gobierno-minimo-viable.md",
         ROOT / "backend/app/data/curated_intel/fundamentos/05-roi-y-priorizacion.md",
         ROOT / "backend/app/data/curated_intel/fundamentos/06-mapeo-de-procesos-y-descubrimiento.md",
         ROOT / "backend/app/data/curated_intel/2026-05-21/05-dolores-local-cloud-gobierno.md",
@@ -82,3 +83,25 @@ def test_sector_query_prefers_sector_library(monkeypatch, tmp_path) -> None:
 
     assert hits
     assert hits[0].metadata["title"] == "BIBLIOTECA DE QUICK WINS SECTORIALES — BASE"
+
+
+def test_query_intent_metadata_is_exposed(monkeypatch, tmp_path) -> None:
+    _init_temp_db(monkeypatch, tmp_path)
+    _seed_foundations()
+
+    hits = updates.retrieve_knowledge("local vs cloud datos sensibles", top_k=2)
+
+    assert hits
+    assert hits[0].metadata["query_intent"] == "local_cloud"
+    assert hits[0].metadata["block"] in {"fundamentos", "dolores", "stack"}
+
+
+def test_governance_style_query_prefers_governance_content(monkeypatch, tmp_path) -> None:
+    _init_temp_db(monkeypatch, tmp_path)
+    _seed_foundations()
+
+    hits = updates.retrieve_knowledge("ChatGPT en PC de clinica sin control", top_k=3)
+
+    assert hits
+    titles = [hit.metadata["title"] for hit in hits]
+    assert "GOBIERNO MINIMO VIABLE DE IA — BASE" in titles

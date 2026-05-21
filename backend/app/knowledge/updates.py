@@ -56,6 +56,17 @@ FIELD_WEIGHTS = {
     "compact_text": 1.0,
 }
 
+INTENT_KEYWORDS = {
+    "diagnostico": {"donde", "empezar", "primero", "priorizar", "diagnostico", "oportunidad", "quick", "win"},
+    "local_cloud": {"local", "cloud", "chatgpt", "api", "ollama", "lm", "studio", "privacidad"},
+    "roi": {"roi", "payback", "ahorro", "coste", "horas", "beneficio", "amortiza"},
+    "roadmap": {"roadmap", "90", "dias", "implantar", "desplegar", "piloto"},
+    "gobierno": {"riesgo", "gobierno", "gdpr", "rgpd", "eu", "act", "cumplimiento", "control"},
+    "sector_salud": {"clinica", "clinicas", "hospital", "salud", "paciente", "historia", "medica"},
+    "sector_legal": {"despacho", "despachos", "legal", "juridico", "contrato", "expediente"},
+    "stack": {"stack", "n8n", "make", "chatgpt", "ollama", "herramientas", "saas"},
+}
+
 QUERY_EXPANSIONS = {
     "clinica": {"clinica", "clinicas", "salud", "sanitario", "paciente", "historia", "medica"},
     "despacho": {"despacho", "despachos", "legal", "juridico", "contrato", "expediente"},
@@ -380,6 +391,7 @@ def list_briefs(query: str | None = None, limit: int = 10) -> list[dict]:
 
 
 def retrieve_knowledge(query: str, top_k: int = 4) -> list[RetrievedChunk]:
+    query_intent = _infer_query_intent(query)
     briefs = _rank_briefs(query, top_k)
     return [
         RetrievedChunk(
@@ -393,6 +405,8 @@ def retrieve_knowledge(query: str, top_k: int = 4) -> list[RetrievedChunk]:
                 "tags": brief["tags"],
                 "source_url": brief.get("source_url"),
                 "uploaded_at": brief.get("uploaded_at"),
+                "block": brief.get("block"),
+                "query_intent": query_intent,
             },
         )
         for brief in briefs
@@ -448,6 +462,7 @@ def _rank_briefs(query: str, limit: int) -> list[dict]:
     folded_query = _fold(query)
     query_phrases = [phrase for phrase in PHRASE_BOOSTS if phrase in folded_query]
     broad_query = _is_broad_query(tokens)
+    query_intent = _infer_query_intent(query)
     with db() as conn:
         rows = conn.execute(
             """
@@ -482,7 +497,11 @@ def _rank_briefs(query: str, limit: int) -> list[dict]:
         score += _title_phrase_boost(brief["title"], folded_query)
         score += _phrase_match_score(folded_haystack, query_phrases)
         score += _sector_alignment_score(brief, expanded_tokens)
-        score += _block_score(_infer_block(brief["title"], brief["source_type"]), broad_query, expanded_tokens)
+        block_id = _infer_block(brief["title"], brief["source_type"])
+        score += _block_score(block_id, broad_query, expanded_tokens)
+        score += _intent_score(query_intent, brief, block_id, folded_haystack)
+        brief["block"] = block_id
+        brief["query_intent"] = query_intent
         brief["score"] = score
         ranked.append(brief)
     ranked.sort(key=lambda item: (item["score"], item["uploaded_at"]), reverse=True)
@@ -622,6 +641,47 @@ def _is_broad_query(tokens: list[str]) -> bool:
         token in tokens
         for token in {"donde", "donde", "empezar", "primero", "implementar", "priorizar", "mapear", "roi"}
     )
+
+
+def _infer_query_intent(query: str) -> str:
+    tokens = set(_tokens(query))
+    scores: dict[str, float] = {}
+    for intent, keywords in INTENT_KEYWORDS.items():
+        scores[intent] = float(len(tokens & keywords))
+    if {"control", "permisos", "politica", "politicas", "uso", "empresa"} & tokens:
+        scores["gobierno"] = scores.get("gobierno", 0.0) + 2.5
+    best_intent = max(scores, key=scores.get, default="general")
+    if scores.get(best_intent, 0.0) <= 0:
+        return "general"
+    return best_intent
+
+
+def _intent_score(query_intent: str, brief: dict, block_id: str, folded_haystack: str) -> float:
+    if query_intent == "general":
+        return 0.0
+
+    score = 0.0
+    if query_intent == "diagnostico" and block_id == "fundamentos":
+        score += 4.5
+    if query_intent == "local_cloud" and (
+        block_id in {"fundamentos", "dolores", "stack"}
+        or "local" in folded_haystack
+        or "cloud" in folded_haystack
+    ):
+        score += 5.0
+    if query_intent == "roi" and ("roi" in folded_haystack or "payback" in folded_haystack or block_id in {"fundamentos", "roadmaps"}):
+        score += 4.0
+    if query_intent == "roadmap" and block_id == "roadmaps":
+        score += 4.5
+    if query_intent == "gobierno" and ("riesgo" in folded_haystack or "cumplimiento" in folded_haystack or block_id == "dolores"):
+        score += 4.25
+    if query_intent == "sector_salud" and ("clinica" in folded_haystack or "salud" in folded_haystack or block_id == "sector_publico_salud"):
+        score += 4.75
+    if query_intent == "sector_legal" and ("despacho" in folded_haystack or "contrato" in folded_haystack or "expediente" in folded_haystack):
+        score += 4.0
+    if query_intent == "stack" and ("n8n" in folded_haystack or "ollama" in folded_haystack or "make" in folded_haystack or block_id == "stack"):
+        score += 4.25
+    return score
 
 
 def _block_score(block_id: str, broad_query: bool, query_tokens: set[str]) -> float:
