@@ -87,6 +87,35 @@
               <h2>Runtime</h2>
             </div>
             <div id="toolsStatus" class="tools-status">Comprobando...</div>
+            <form id="runtimePolicyForm" class="runtime-policy-form">
+              <label>
+                Premium provider
+                <select id="runtimePremiumProvider">
+                  <option value="lmstudio">LM Studio</option>
+                  <option value="claude_cli">Claude CLI</option>
+                  <option value="codex_cli">Codex CLI</option>
+                  <option value="anthropic_api">Anthropic API</option>
+                  <option value="openai_api">OpenAI API</option>
+                </select>
+              </label>
+              <label class="checkbox-row">
+                <input id="runtimeEscalationEnabled" type="checkbox" />
+                <span>Enable escalation</span>
+              </label>
+              <label class="checkbox-row">
+                <input id="runtimeAllowSensitive" type="checkbox" />
+                <span>Allow sensitive content to escalate</span>
+              </label>
+              <label>
+                Allowed intents
+                <input
+                  id="runtimeAllowedIntents"
+                  value="strategy,grc,solution,opportunity,deliverable"
+                />
+              </label>
+              <button id="runtimePolicyButton" type="submit">Save runtime policy</button>
+            </form>
+            <div id="runtimePolicyResult" class="tools-status"></div>
           </section>
 
           <section class="rail-section process-scanner-panel" aria-label="Escáner de procesos">

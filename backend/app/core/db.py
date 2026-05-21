@@ -136,6 +136,16 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_knowledge_briefs_update_id
                 ON knowledge_briefs(update_id);
+
+            CREATE TABLE IF NOT EXISTS tenant_runtime_policies (
+                tenant_id TEXT PRIMARY KEY,
+                premium_provider TEXT NOT NULL,
+                escalation_enabled INTEGER NOT NULL,
+                escalation_allow_sensitive INTEGER NOT NULL,
+                escalation_allowed_intents TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                updated_by TEXT NOT NULL
+            );
             """
         )
 

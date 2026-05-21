@@ -10,6 +10,7 @@ import json
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.core import runtime_policy
 from app.core.orchestrator import run_stream
 from app.core.schemas import ChatRequest
 from app.deps import Principal, get_principal
@@ -40,16 +41,17 @@ async def chat(
         verified = None
         intent = None
         try:
-            async for chunk in run_stream(
-                safe_message,
-                principal.tenant_id,
-                client_name=principal.client_name,
-                user_id=principal.user_id,
-            ):
-                if chunk.type == "final":
-                    verified = chunk.meta.get("verified")
-                    intent = chunk.meta.get("intent")
-                yield _sse(chunk.model_dump())
+            with runtime_policy.activate_tenant_policy(principal.tenant_id):
+                async for chunk in run_stream(
+                    safe_message,
+                    principal.tenant_id,
+                    client_name=principal.client_name,
+                    user_id=principal.user_id,
+                ):
+                    if chunk.type == "final":
+                        verified = chunk.meta.get("verified")
+                        intent = chunk.meta.get("intent")
+                    yield _sse(chunk.model_dump())
         except Exception as exc:  # noqa: BLE001
             yield _sse({"type": "error", "data": str(exc), "meta": {}})
         finally:

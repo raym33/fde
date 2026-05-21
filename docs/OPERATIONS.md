@@ -53,6 +53,27 @@ curl http://127.0.0.1:8000/tools/premium/status \
   -H 'X-User-Id: ops'
 ```
 
+### Inspect or update tenant runtime policy
+
+```bash
+curl http://127.0.0.1:8000/tools/runtime-policy \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: ops'
+```
+
+```bash
+curl -X POST http://127.0.0.1:8000/tools/runtime-policy \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: ops' \
+  -d '{
+    "premium_provider": "codex_cli",
+    "escalation_enabled": true,
+    "escalation_allow_sensitive": false,
+    "escalation_allowed_intents": "strategy,grc,deliverable"
+  }'
+```
+
 ### Import curated knowledge
 
 ```bash
@@ -123,7 +144,8 @@ Recommended operator sequence:
 4. ask a diagnosis or roadmap question,
 5. inspect search-backed intelligence in the explorer,
 6. convert the best candidate into a pilot,
-7. evaluate implementation changes through Labs.
+7. if needed, set a tenant runtime policy override for premium escalation,
+8. evaluate implementation changes through Labs.
 
 ## Failure handling
 

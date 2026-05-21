@@ -20,6 +20,9 @@ DEFAULT_OUTPUT_DIR = ROOT / "data" / "implementation_bundles"
 
 SERVICE_FILE_MAP = {
     "support_knowledge_agent": ENGINE_DIR / "services" / "customer-support-automation.md",
+    "document_search_copilot": ENGINE_DIR / "services" / "document-search-copilot.md",
+    "finance_invoice_automation": ENGINE_DIR / "services" / "invoice-automation.md",
+    "executive_ai_governance": ENGINE_DIR / "services" / "ai-governance-rollout.md",
 }
 
 

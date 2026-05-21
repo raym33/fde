@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from app.config import get_settings
+from app.core import runtime_policy
 from app.core.schemas import Intent, RetrievedChunk, VerifierVerdict
 
 
@@ -64,16 +65,22 @@ def should_escalate(
     chunks: list[RetrievedChunk],
 ) -> bool:
     settings = get_settings()
-    if not settings.escalation_enabled:
+    policy = runtime_policy.current_policy()
+    if not policy.escalation_enabled:
         return False
-    if settings.premium_provider == "lmstudio":
+    if policy.premium_provider == "lmstudio":
         return False
 
     intent_name = intent.value.lower()
-    if intent_name not in settings.escalation_allowed_intent_set and not user_requested_premium(message):
+    allowed_intents = {
+        item.strip().lower()
+        for item in policy.escalation_allowed_intents.split(",")
+        if item.strip()
+    }
+    if intent_name not in allowed_intents and not user_requested_premium(message):
         return False
 
-    if contains_sensitive_content(message, chunks) and not settings.escalation_allow_sensitive:
+    if contains_sensitive_content(message, chunks) and not policy.escalation_allow_sensitive:
         return False
 
     if user_requested_premium(message):

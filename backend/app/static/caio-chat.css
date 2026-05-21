@@ -315,7 +315,8 @@ textarea {
 
 .upload-form button,
 .composer button,
-.scanner-form button {
+.scanner-form button,
+.runtime-policy-form button {
   min-height: 40px;
   border: 1px solid var(--accent-dark);
   background: var(--accent);
@@ -327,8 +328,28 @@ textarea {
 
 .upload-form button:hover,
 .composer button:hover,
-.scanner-form button:hover {
+.scanner-form button:hover,
+.runtime-policy-form button:hover {
   background: var(--accent-dark);
+}
+
+.runtime-policy-form {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .scanner-form {

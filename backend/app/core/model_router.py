@@ -17,6 +17,7 @@ import json
 from typing import AsyncIterator, Literal
 
 from app.config import get_settings
+from app.core import runtime_policy
 from app.security import pii
 from app.tools import cli_provider
 from app.tools import lm_studio
@@ -45,8 +46,9 @@ class ModelRouter:
         return self._tier_map[tier]
 
     def provider_for(self, tier: Tier) -> str:
+        policy = runtime_policy.current_policy()
         if tier == "premium":
-            return self.settings.premium_provider
+            return policy.premium_provider
         if self.settings.local_llm_enabled and self.settings.local_llm_provider == "lmstudio":
             return "lmstudio"
         return "litellm"

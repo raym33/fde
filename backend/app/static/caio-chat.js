@@ -16,6 +16,13 @@ const documentFile = document.querySelector("#documentFile");
 const uploadButton = document.querySelector("#uploadButton");
 const uploadResult = document.querySelector("#uploadResult");
 const runtimeMode = document.querySelector("#runtimeMode");
+const runtimePolicyForm = document.querySelector("#runtimePolicyForm");
+const runtimePremiumProvider = document.querySelector("#runtimePremiumProvider");
+const runtimeEscalationEnabled = document.querySelector("#runtimeEscalationEnabled");
+const runtimeAllowSensitive = document.querySelector("#runtimeAllowSensitive");
+const runtimeAllowedIntents = document.querySelector("#runtimeAllowedIntents");
+const runtimePolicyButton = document.querySelector("#runtimePolicyButton");
+const runtimePolicyResult = document.querySelector("#runtimePolicyResult");
 const knowledgeForm = document.querySelector("#knowledgeForm");
 const knowledgeFile = document.querySelector("#knowledgeFile");
 const knowledgeTitle = document.querySelector("#knowledgeTitle");
@@ -41,6 +48,7 @@ let knowledgeBlocks = [];
 let selectedIntelBlock = null;
 let lastKnowledgeQuery = "";
 let lastOpportunityDiagnosis = null;
+let runtimePolicyLoadedForTenant = null;
 
 const DEFAULT_SCANNER_ARTIFACTS = `Procedimiento facturas | procedure | ERP | 300/mes
 Administración recibe facturas de proveedores por email, descarga PDF, copia importe, IVA, NIF e IBAN en Excel y valida manualmente en ERP.
@@ -491,6 +499,11 @@ async function sendMessage(message) {
           messages.scrollTop = messages.scrollHeight;
         } else if (payload.type === "citation") {
           addStatus(`Fuente: ${payload.data}`);
+        } else if (payload.type === "final" && payload.meta) {
+          const executionPath = payload.meta.escalated ? "premium" : "local";
+          addStatus(
+            `Answer path: ${executionPath} · intent ${payload.meta.intent || "general"} · verified ${payload.meta.verified ? "yes" : "no"}`
+          );
         } else if (payload.type === "error") {
           addStatus(`Error: ${payload.data}`);
         }
@@ -531,28 +544,47 @@ document.addEventListener("click", (event) => {
   generateImplementationBundle(button.dataset.opportunityBundle);
 });
 
+function hydrateRuntimePolicyForm(payload) {
+  if (!runtimePolicyForm) return;
+  const effective = payload?.effective || {};
+  runtimePremiumProvider.value = effective.premium_provider || "lmstudio";
+  runtimeEscalationEnabled.checked = Boolean(effective.escalation_enabled);
+  runtimeAllowSensitive.checked = Boolean(effective.escalation_allow_sensitive);
+  runtimeAllowedIntents.value =
+    effective.escalation_allowed_intents || "strategy,grc,solution,opportunity,deliverable";
+  runtimePolicyLoadedForTenant = tenantId.value || "demo-tenant";
+
+  const stored = payload?.stored;
+  runtimePolicyResult.innerHTML = stored
+    ? `<div class="tool-line"><span>Override</span><strong>saved by ${escapeHtml(stored.updated_by || "unknown")}</strong></div>
+       <div class="tool-line stacked"><span>Updated</span><strong>${escapeHtml(stored.updated_at || "unknown")}</strong></div>`
+    : `<div class="tool-line"><span>Override</span><strong>using defaults</strong></div>`;
+}
+
 async function loadToolsStatus() {
   try {
-    const [searchResponse, documentResponse, lmStudioResponse, premiumResponse, knowledgeResponse] = await Promise.all([
+    const [searchResponse, documentResponse, lmStudioResponse, premiumResponse, knowledgeResponse, policyResponse] = await Promise.all([
       fetch("/tools/web-search/status", { headers: tenantHeaders() }),
       fetch("/documents/status", { headers: tenantHeaders() }),
       fetch("/tools/lm-studio/status", { headers: tenantHeaders() }),
       fetch("/tools/premium/status", { headers: tenantHeaders() }),
       fetch("/knowledge/updates/status"),
+      fetch("/tools/runtime-policy", { headers: tenantHeaders() }),
     ]);
     const status = await searchResponse.json();
     const docs = await documentResponse.json();
     const lmStudio = await lmStudioResponse.json();
     const premium = await premiumResponse.json();
     const knowledge = await knowledgeResponse.json();
+    const runtimePolicy = await policyResponse.json();
     const activeNodes = (lmStudio.nodes || []).filter((node) => node.available);
     const firstNode = activeNodes[0];
     const localModel = lmStudio.enabled
       ? lmStudio.chat_model || "configurado"
       : "desactivado";
     runtimeMode.textContent = lmStudio.enabled && firstNode
-      ? `LM Studio local activo con ${localModel}. Modo demo mantiene búsqueda externa simulada si no hay claves.`
-      : "Modo demo activo: sin LLM local conectado, respuestas deterministas cuando aplica.";
+      ? `LM Studio local active with ${localModel}. Premium path: ${premium.provider || "unknown"} (${premium.policy_source || "default"}).`
+      : "Demo mode active: deterministic responses are used when no local model or external key is available.";
     toolsStatus.innerHTML = `
       <div class="tool-line"><span>LM Studio</span><strong>${lmStudio.enabled && firstNode ? "activo" : "inactivo"}</strong></div>
       <div class="tool-line stacked"><span>Modelo chat</span><strong>${escapeHtml(localModel)}</strong></div>
@@ -560,6 +592,7 @@ async function loadToolsStatus() {
       <div class="tool-line stacked"><span>Modelos LAN</span><strong>${escapeHtml(activeNodes.flatMap((node) => node.models || []).join(", ") || "ninguno")}</strong></div>
       <div class="tool-line"><span>Premium</span><strong>${escapeHtml(premium.provider || "unknown")}</strong></div>
       <div class="tool-line stacked"><span>Premium status</span><strong>${escapeHtml(premium.available ? "available" : "unavailable")} · ${escapeHtml(premium.mode || "unknown")}</strong></div>
+      <div class="tool-line stacked"><span>Policy source</span><strong>${escapeHtml(premium.policy_source || "default")}</strong></div>
       <div class="tool-line"><span>Web search</span><strong>${escapeHtml(status.provider)}</strong></div>
       <div class="tool-line"><span>Estado</span><strong>${status.available ? "conectado" : "demo"}</strong></div>
       <div class="tool-line"><span>Caché</span><strong>${status.cache_entries}</strong></div>
@@ -567,6 +600,7 @@ async function loadToolsStatus() {
       <div class="tool-line"><span>OCR</span><strong>${docs.ocr.available ? "activo" : "opcional"}</strong></div>
       <div class="tool-line"><span>Intel IA</span><strong>${knowledge.briefs} fichas</strong></div>
     `;
+    hydrateRuntimePolicyForm(runtimePolicy);
   } catch (error) {
     toolsStatus.textContent = `No disponible: ${error.message}`;
   }
@@ -719,5 +753,42 @@ opportunityForm?.addEventListener("submit", async (event) => {
     opportunityResult.textContent = `Error: ${error.message}`;
   } finally {
     opportunityButton.disabled = false;
+  }
+});
+
+runtimePolicyForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  runtimePolicyButton.disabled = true;
+  runtimePolicyResult.textContent = "Saving runtime policy...";
+  try {
+    const response = await fetch("/tools/runtime-policy", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        premium_provider: runtimePremiumProvider.value,
+        escalation_enabled: runtimeEscalationEnabled.checked,
+        escalation_allow_sensitive: runtimeAllowSensitive.checked,
+        escalation_allowed_intents: runtimeAllowedIntents.value.trim(),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    hydrateRuntimePolicyForm(payload);
+    await loadToolsStatus();
+  } catch (error) {
+    runtimePolicyResult.textContent = `Error: ${error.message}`;
+  } finally {
+    runtimePolicyButton.disabled = false;
+  }
+});
+
+tenantId?.addEventListener("change", () => {
+  runtimePolicyLoadedForTenant = null;
+  loadToolsStatus();
+});
+
+clientName?.addEventListener("change", () => {
+  if (runtimePolicyLoadedForTenant !== (tenantId.value || "demo-tenant")) {
+    loadToolsStatus();
   }
 });
