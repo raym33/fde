@@ -4,6 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.deps import Principal, get_principal
+from app.config import get_settings
+from app.tools import cli_provider
 from app.tools import lm_studio, web_search
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -49,3 +51,38 @@ async def lm_studio_test(
         return await lm_studio.test_prompt(prompt)
     except lm_studio.LMStudioError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/premium/status")
+async def premium_status(
+    _principal: Principal = Depends(get_principal),
+) -> dict:
+    settings = get_settings()
+    provider = settings.premium_provider
+    if provider == "lmstudio":
+        return {
+            "provider": provider,
+            "available": True,
+            "mode": "local",
+            "detail": "Premium tier is configured to use LM Studio.",
+        }
+    if provider in {"anthropic_api", "openai_api"}:
+        key_present = bool(
+            settings.anthropic_api_key if provider == "anthropic_api" else settings.openai_api_key
+        )
+        return {
+            "provider": provider,
+            "available": key_present,
+            "mode": "api",
+            "detail": "API key detected." if key_present else "API key missing.",
+        }
+    if provider in {"claude_cli", "codex_cli"}:
+        status = await cli_provider.status(provider)
+        status["mode"] = "cli"
+        return status
+    return {
+        "provider": provider,
+        "available": False,
+        "mode": "unknown",
+        "detail": "Unsupported premium provider.",
+    }

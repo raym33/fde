@@ -47,6 +47,12 @@ curl http://127.0.0.1:8000/tools/lm-studio/status \
   -H 'X-User-Id: ops'
 ```
 
+```bash
+curl http://127.0.0.1:8000/tools/premium/status \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: ops'
+```
+
 ### Import curated knowledge
 
 ```bash
@@ -143,3 +149,12 @@ Expected behavior:
 - the app falls back to demo or non-local behavior,
 - `/tools/lm-studio/status` will show the failure,
 - the operator UI will reflect that local inference is not active.
+
+### Premium CLI or API backend is unavailable
+
+Expected behavior:
+
+- `/tools/premium/status` reports the selected premium backend status,
+- the application does not crash,
+- premium escalation falls back to the local answer path,
+- and the failure remains visible through status and audit trails.

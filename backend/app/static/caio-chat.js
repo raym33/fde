@@ -533,15 +533,17 @@ document.addEventListener("click", (event) => {
 
 async function loadToolsStatus() {
   try {
-    const [searchResponse, documentResponse, lmStudioResponse, knowledgeResponse] = await Promise.all([
+    const [searchResponse, documentResponse, lmStudioResponse, premiumResponse, knowledgeResponse] = await Promise.all([
       fetch("/tools/web-search/status", { headers: tenantHeaders() }),
       fetch("/documents/status", { headers: tenantHeaders() }),
       fetch("/tools/lm-studio/status", { headers: tenantHeaders() }),
+      fetch("/tools/premium/status", { headers: tenantHeaders() }),
       fetch("/knowledge/updates/status"),
     ]);
     const status = await searchResponse.json();
     const docs = await documentResponse.json();
     const lmStudio = await lmStudioResponse.json();
+    const premium = await premiumResponse.json();
     const knowledge = await knowledgeResponse.json();
     const activeNodes = (lmStudio.nodes || []).filter((node) => node.available);
     const firstNode = activeNodes[0];
@@ -556,6 +558,8 @@ async function loadToolsStatus() {
       <div class="tool-line stacked"><span>Modelo chat</span><strong>${escapeHtml(localModel)}</strong></div>
       <div class="tool-line stacked"><span>Nodo local</span><strong>${escapeHtml(firstNode?.base_url || "sin nodo disponible")}</strong></div>
       <div class="tool-line stacked"><span>Modelos LAN</span><strong>${escapeHtml(activeNodes.flatMap((node) => node.models || []).join(", ") || "ninguno")}</strong></div>
+      <div class="tool-line"><span>Premium</span><strong>${escapeHtml(premium.provider || "unknown")}</strong></div>
+      <div class="tool-line stacked"><span>Premium status</span><strong>${escapeHtml(premium.available ? "available" : "unavailable")} · ${escapeHtml(premium.mode || "unknown")}</strong></div>
       <div class="tool-line"><span>Web search</span><strong>${escapeHtml(status.provider)}</strong></div>
       <div class="tool-line"><span>Estado</span><strong>${status.available ? "conectado" : "demo"}</strong></div>
       <div class="tool-line"><span>Caché</span><strong>${status.cache_entries}</strong></div>

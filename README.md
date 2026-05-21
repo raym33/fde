@@ -223,6 +223,15 @@ Important variables:
 
 - `LOCAL_LLM_ENABLED`
 - `LOCAL_LLM_PROVIDER`
+- `PREMIUM_PROVIDER`
+- `ESCALATION_ENABLED`
+- `ESCALATION_ALLOWED_INTENTS`
+- `ESCALATION_ALLOW_SENSITIVE`
+- `LOCAL_CONTEXT_LIMIT`
+- `PREMIUM_SANDBOX_DIR`
+- `CLAUDE_CLI_COMMAND`
+- `CODEX_CLI_COMMAND`
+- `PREMIUM_CLI_TIMEOUT_SECONDS`
 - `LM_STUDIO_BASE_URL`
 - `LM_STUDIO_API_KEY`
 - `LM_STUDIO_TIMEOUT_SECONDS`
@@ -282,6 +291,7 @@ See [backend/.env.example](/Users/mac/Documents/Codex/2026-05-20/claude-ha-termi
 - `GET /tools/web-search/test`
 - `GET /tools/lm-studio/status`
 - `GET /tools/lm-studio/test`
+- `GET /tools/premium/status`
 
 ### Labs admin routes
 
@@ -498,6 +508,61 @@ LM_STUDIO_REMOTE_BASE_URLS=http://192.168.x.y:1234/v1,http://192.168.x.z:1234/v1
 
 - `GET /tools/lm-studio/status`
 - the `Runtime` panel in `/app`
+
+## Optional premium escalation
+
+The application is local-first by default.
+
+If a self-hosting customer wants frontier escalation for difficult tasks, they can configure one of these modes in `backend/.env`:
+
+```env
+# A) local only
+LOCAL_LLM_ENABLED=true
+PREMIUM_PROVIDER=lmstudio
+
+# B) local + Claude CLI
+LOCAL_LLM_ENABLED=true
+PREMIUM_PROVIDER=claude_cli
+ESCALATION_ENABLED=true
+
+# C) local + Codex CLI
+LOCAL_LLM_ENABLED=true
+PREMIUM_PROVIDER=codex_cli
+ESCALATION_ENABLED=true
+
+# D) local + hosted API
+LOCAL_LLM_ENABLED=true
+PREMIUM_PROVIDER=anthropic_api
+ESCALATION_ENABLED=true
+```
+
+Behavior:
+
+- cheap and medium tiers can remain local,
+- premium can be routed separately,
+- escalation is disabled by default,
+- sensitive content is blocked from escalation by default,
+- and `/tools/premium/status` reports whether the selected premium backend is available.
+
+## Scheduled ingestion agent
+
+If the client does not want to upload files manually, use:
+
+```bash
+backend/.venv/bin/python scripts/ingest_agent.py \
+  --base-url http://127.0.0.1:8000 \
+  --tenant-id demo-tenant \
+  --user-id ingest-agent \
+  --client-name "Demo SL" \
+  --source-dir /absolute/path/to/source-folder
+```
+
+The script:
+
+- scans allowlisted local folders,
+- sends document-like files to `/documents`,
+- sends update-like files to `/knowledge/updates`,
+- and is designed to be run from cron or another scheduler.
 
 ## Minimal end-to-end usage example
 

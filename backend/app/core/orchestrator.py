@@ -14,6 +14,7 @@ import asyncio
 
 from app.config import get_settings
 from app.core.agents import render_prompt, run_agent
+from app.core.escalation import should_escalate
 from app.core.model_router import get_router
 from app.core.schemas import (
     INTENT_AGENTS,
@@ -28,6 +29,7 @@ from app.core.solutions import engine as solutions_engine
 from app.core.verifier import verify
 from app.knowledge.updates import retrieve_knowledge
 from app.rag.retriever import retrieve
+from app.security import audit
 
 # El orden importa: se devuelve la primera intención con keyword coincidente.
 _INTENT_KEYWORDS = {
@@ -99,7 +101,7 @@ def _synthesis_tier(intent: Intent) -> str:
     return "premium" if intent in (Intent.DELIVERABLE, Intent.GRC) else "medium"
 
 
-async def run_stream(message: str, tenant_id: str, *, client_name: str):
+async def run_stream(message: str, tenant_id: str, *, client_name: str, user_id: str = "unknown"):
     """Generador asíncrono que produce eventos ChatChunk."""
     settings = get_settings()
     region = settings.data_region
@@ -124,14 +126,14 @@ async def run_stream(message: str, tenant_id: str, *, client_name: str):
     # 2-bis. Rama del motor de soluciones ----------------------------
     if intent == Intent.SOLUTION:
         async for ev in _run_solution(
-            message, tenant_id, chunks, client_name=client_name, region=region
+            message, tenant_id, chunks, client_name=client_name, region=region, user_id=user_id
         ):
             yield ev
         return
 
     if intent == Intent.OPPORTUNITY:
         async for ev in _run_opportunity(
-            message, chunks, client_name=client_name, region=region
+            message, chunks, client_name=client_name, region=region, tenant_id=tenant_id, user_id=user_id
         ):
             yield ev
         return
@@ -218,6 +220,35 @@ async def run_stream(message: str, tenant_id: str, *, client_name: str):
             meta={"issues": verdict.issues},
         )
 
+    if should_escalate(intent=intent, message=message, verdict=verdict, chunks=chunks):
+        yield ChatChunk(type="status", data="Escalating to premium provider for a reviewed retry…")
+        await audit.record(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="premium_escalation",
+            detail={"intent": intent.value, "provider": get_settings().premium_provider, "reason": "policy_triggered"},
+        )
+        try:
+            premium_messages = [
+                {"role": "system", "content": system},
+                {
+                    "role": "user",
+                    "content": user + "\n\nRe-run this task with a frontier-grade model and produce the final answer only.",
+                },
+            ]
+            escalated = await get_router().complete(
+                messages=premium_messages,
+                tier="premium",
+                temperature=0.1,
+            )
+            final = escalated.strip() or final
+        except Exception as exc:  # noqa: BLE001
+            yield ChatChunk(
+                type="status",
+                data="Premium provider unavailable; keeping the local verified answer.",
+                meta={"error": str(exc)[:300]},
+            )
+
     # 6. Emisión final (streaming de tokens) -------------------------
     for token in _tokenize(final):
         yield ChatChunk(type="token", data=token)
@@ -249,6 +280,7 @@ async def _run_solution(
     *,
     client_name: str,
     region: str,
+    user_id: str,
 ):
     """Genera, puntua y recomienda soluciones; emite la propuesta por streaming."""
     settings = get_settings()
@@ -308,6 +340,30 @@ async def _run_solution(
             meta={"issues": verdict.issues},
         )
 
+    if should_escalate(intent=Intent.SOLUTION, message=message, verdict=verdict, chunks=chunks):
+        yield ChatChunk(type="status", data="Escalating solution narrative to premium provider…")
+        await audit.record(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="premium_escalation",
+            detail={"intent": Intent.SOLUTION.value, "provider": get_settings().premium_provider, "reason": "policy_triggered"},
+        )
+        try:
+            final = await get_router().complete(
+                [
+                    {"role": "system", "content": render_prompt("solutions_architect", client_name=client_name, data_region=region)},
+                    {"role": "user", "content": final + "\n\nImprove this answer with stronger reasoning and keep it executable."},
+                ],
+                tier="premium",
+                temperature=0.1,
+            )
+        except Exception as exc:  # noqa: BLE001
+            yield ChatChunk(
+                type="status",
+                data="Premium provider unavailable; keeping the local verified solution.",
+                meta={"error": str(exc)[:300]},
+            )
+
     for token in _tokenize(final):
         yield ChatChunk(type="token", data=token)
         await asyncio.sleep(0)
@@ -340,6 +396,8 @@ async def _run_opportunity(
     *,
     client_name: str,
     region: str,
+    tenant_id: str,
+    user_id: str,
 ):
     """Diagnostica dónde implementar IA dentro de una pyme."""
     settings = get_settings()
@@ -375,6 +433,30 @@ async def _run_opportunity(
                 type="status",
                 data="El verificador marcó observaciones (registradas en auditoría).",
                 meta={"issues": verdict.issues},
+            )
+
+    if should_escalate(intent=Intent.OPPORTUNITY, message=message, verdict=verdict, chunks=chunks):
+        yield ChatChunk(type="status", data="Escalating opportunity diagnosis to premium provider…")
+        await audit.record(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="premium_escalation",
+            detail={"intent": Intent.OPPORTUNITY.value, "provider": get_settings().premium_provider, "reason": "policy_triggered"},
+        )
+        try:
+            final = await get_router().complete(
+                [
+                    {"role": "system", "content": render_prompt("estratega", client_name=client_name, data_region=region)},
+                    {"role": "user", "content": final + "\n\nImprove this opportunity map and keep the same practical structure."},
+                ],
+                tier="premium",
+                temperature=0.1,
+            )
+        except Exception as exc:  # noqa: BLE001
+            yield ChatChunk(
+                type="status",
+                data="Premium provider unavailable; keeping the local verified opportunity map.",
+                meta={"error": str(exc)[:300]},
             )
 
     for token in _tokenize(final):

@@ -44,6 +44,7 @@ async def chat(
                 safe_message,
                 principal.tenant_id,
                 client_name=principal.client_name,
+                user_id=principal.user_id,
             ):
                 if chunk.type == "final":
                     verified = chunk.meta.get("verified")

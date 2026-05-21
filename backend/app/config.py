@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     lm_studio_embedding_model: str = "text-embedding-nomic-embed-text-v1.5"
     lm_studio_remote_base_urls: str = ""  # comma-separated http://host:1234/v1
     local_embedding_fallback: bool = True
+    premium_provider: str = "lmstudio"  # lmstudio | anthropic_api | openai_api | claude_cli | codex_cli
+    escalation_enabled: bool = False
+    escalation_allowed_intents: str = "strategy,grc,solution,opportunity,deliverable"
+    escalation_allow_sensitive: bool = False
+    local_context_limit: int = 16000
+    premium_sandbox_dir: str = str(PROJECT_ROOT / "data" / "premium_sandbox")
+    claude_cli_command: str = "claude"
+    codex_cli_command: str = "codex"
+    premium_cli_timeout_seconds: float = 120.0
 
     # Infrastructure
     database_url: str = (
@@ -122,6 +131,18 @@ class Settings(BaseSettings):
         if self.labs_sqlite_path:
             return Path(self.labs_sqlite_path).expanduser().resolve()
         return DEFAULT_SQLITE_PATH
+
+    @property
+    def escalation_allowed_intent_set(self) -> set[str]:
+        return {
+            item.strip().lower()
+            for item in self.escalation_allowed_intents.split(",")
+            if item.strip()
+        }
+
+    @property
+    def premium_sandbox_path(self) -> Path:
+        return Path(self.premium_sandbox_dir).expanduser().resolve()
 
 
 @lru_cache
