@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass
 from uuid import uuid4
@@ -43,6 +44,39 @@ STOPWORDS = {
     "para", "como", "with", "that", "this", "from", "into", "sobre", "entre",
     "tambien", "también", "desde", "hasta", "cada", "donde", "when", "what",
     "the", "and", "los", "las", "una", "uno", "por", "con", "del", "que",
+}
+
+FIELD_WEIGHTS = {
+    "title": 4.0,
+    "summary": 2.5,
+    "tags": 3.0,
+    "business_relevance": 2.0,
+    "technical_relevance": 1.75,
+    "risk_relevance": 2.25,
+    "compact_text": 1.0,
+}
+
+QUERY_EXPANSIONS = {
+    "clinica": {"clinica", "clinicas", "salud", "sanitario", "paciente", "historia", "medica"},
+    "despacho": {"despacho", "despachos", "legal", "juridico", "contrato", "expediente"},
+    "asesoria": {"asesoria", "asesorias", "fiscal", "laboral", "factura", "contable"},
+    "inmobiliaria": {"inmobiliaria", "inmobiliarias", "inmueble", "propiedad", "alquiler"},
+    "local": {"local", "ollama", "lm", "studio", "runtime", "selfhosted", "soberania", "privacidad"},
+    "cloud": {"cloud", "api", "chatgpt", "claude", "gemini", "openai", "anthropic"},
+    "rag": {"rag", "retrieval", "vector", "embedding", "indice", "documental"},
+    "roi": {"roi", "payback", "ahorro", "coste", "horas", "beneficio"},
+    "proceso": {"proceso", "procesos", "workflow", "automatizacion", "mapear", "flujo"},
+}
+
+PHRASE_BOOSTS = {
+    "local vs cloud": 8.0,
+    "datos sensibles": 7.0,
+    "runtime local": 6.0,
+    "historia clinica": 7.0,
+    "quick win": 5.0,
+    "chatgpt pro": 4.0,
+    "prueba local": 5.0,
+    "correos repetitivos": 6.0,
 }
 
 
@@ -410,6 +444,10 @@ def _find_by_hash(content_hash: str) -> dict | None:
 
 def _rank_briefs(query: str, limit: int) -> list[dict]:
     tokens = _tokens(query)
+    expanded_tokens = _expand_query_tokens(tokens)
+    folded_query = _fold(query)
+    query_phrases = [phrase for phrase in PHRASE_BOOSTS if phrase in folded_query]
+    broad_query = _is_broad_query(tokens)
     with db() as conn:
         rows = conn.execute(
             """
@@ -423,18 +461,28 @@ def _rank_briefs(query: str, limit: int) -> list[dict]:
     ranked = []
     for row in rows:
         brief = _row_to_brief(row)
-        haystack = " ".join(
-            [
-                brief["title"],
-                brief["summary"],
-                brief["compact_text"],
-                " ".join(brief["tags"]),
-            ]
+        field_scores = {
+            field: _field_overlap_score(brief[field], expanded_tokens) * weight
+            for field, weight in FIELD_WEIGHTS.items()
+        }
+        folded_haystack = _fold(
+            " ".join(
+                [
+                    brief["title"],
+                    brief["summary"],
+                    brief["compact_text"],
+                    " ".join(brief["tags"]),
+                    brief["business_relevance"],
+                    brief["technical_relevance"],
+                    brief["risk_relevance"],
+                ]
+            )
         )
-        hay_tokens = Counter(_tokens(haystack))
-        lexical = sum(hay_tokens[t] for t in tokens)
-        tag_bonus = 2 * len(set(tokens) & set(_tokens(" ".join(brief["tags"]))))
-        score = float(lexical + tag_bonus)
+        score = float(sum(field_scores.values()))
+        score += _title_phrase_boost(brief["title"], folded_query)
+        score += _phrase_match_score(folded_haystack, query_phrases)
+        score += _sector_alignment_score(brief, expanded_tokens)
+        score += _block_score(_infer_block(brief["title"], brief["source_type"]), broad_query, expanded_tokens)
         brief["score"] = score
         ranked.append(brief)
     ranked.sort(key=lambda item: (item["score"], item["uploaded_at"]), reverse=True)
@@ -488,6 +536,11 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _fold(text: str) -> str:
+    text = unicodedata.normalize("NFKD", text.lower())
+    return "".join(char for char in text if not unicodedata.combining(char))
+
+
 def _normalize_markdown_line(line: str) -> str:
     text = line.strip()
     text = re.sub(r"^#{1,6}\s*", "", text)
@@ -504,9 +557,83 @@ def _sentences(text: str) -> list[str]:
 def _tokens(text: str) -> list[str]:
     return [
         token
-        for token in re.findall(r"[a-záéíóúüñ0-9][a-záéíóúüñ0-9.-]{2,}", text.lower())
+        for token in re.findall(r"[a-z0-9][a-z0-9.-]{2,}", _fold(text))
         if token not in STOPWORDS
     ]
+
+
+def _expand_query_tokens(tokens: list[str]) -> set[str]:
+    expanded = set(tokens)
+    for token in tokens:
+        expanded.update(QUERY_EXPANSIONS.get(token, set()))
+    return expanded
+
+
+def _field_overlap_score(text: str | list[str], query_tokens: set[str]) -> float:
+    if isinstance(text, list):
+        text = " ".join(text)
+    tokens = Counter(_tokens(text))
+    if not tokens:
+        return 0.0
+    exact_hits = sum(tokens[token] for token in query_tokens)
+    unique_hits = len(query_tokens & set(tokens))
+    return exact_hits + (unique_hits * 0.5)
+
+
+def _title_phrase_boost(title: str, folded_query: str) -> float:
+    folded_title = _fold(title)
+    if folded_query and folded_query in folded_title:
+        return 8.0
+    return 0.0
+
+
+def _phrase_match_score(folded_haystack: str, phrases: list[str]) -> float:
+    return sum(PHRASE_BOOSTS[phrase] for phrase in phrases if phrase in folded_haystack)
+
+
+def _sector_alignment_score(brief: dict, query_tokens: set[str]) -> float:
+    field_text = " ".join(
+        [
+            brief["title"],
+            brief["summary"],
+            brief["business_relevance"],
+            brief["risk_relevance"],
+            brief["compact_text"],
+        ]
+    )
+    field_tokens = set(_tokens(field_text))
+    score = 0.0
+    sector_groups = [
+        {"clinica", "salud", "sanitario", "paciente", "historia", "medica"},
+        {"despacho", "legal", "juridico", "contrato", "expediente"},
+        {"asesoria", "fiscal", "laboral", "contable", "factura"},
+        {"inmobiliaria", "inmueble", "propiedad", "alquiler"},
+    ]
+    for group in sector_groups:
+        if query_tokens & group and field_tokens & group:
+            score += 4.0
+    if {"local", "cloud"} & query_tokens and {"local", "cloud", "ollama", "lm", "studio", "api", "chatgpt"} & field_tokens:
+        score += 3.5
+    return score
+
+
+def _is_broad_query(tokens: list[str]) -> bool:
+    return any(
+        token in tokens
+        for token in {"donde", "donde", "empezar", "primero", "implementar", "priorizar", "mapear", "roi"}
+    )
+
+
+def _block_score(block_id: str, broad_query: bool, query_tokens: set[str]) -> float:
+    if block_id == "fundamentos" and broad_query:
+        return 3.0
+    if block_id == "dolores" and {"riesgo", "control", "chatgpt", "cloud", "local"} & query_tokens:
+        return 2.5
+    if block_id == "roadmaps" and {"roadmap", "quick", "win", "implantacion"} & query_tokens:
+        return 2.5
+    if block_id == "sector_publico_salud" and {"clinica", "hospital", "paciente", "ayuntamiento"} & query_tokens:
+        return 2.5
+    return 0.0
 
 
 def _tags(text: str) -> list[str]:
