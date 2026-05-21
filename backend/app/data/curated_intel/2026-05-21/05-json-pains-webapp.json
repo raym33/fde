@@ -1,0 +1,69 @@
+{
+  "date": "2026-05-21",
+  "source": "X (ultimos 7 dias - batch profundo adicional)",
+  "pains": [
+    {
+      "dolor": "Duda constante: IA local o seguir con ChatGPT/API para datos sensibles",
+      "tipo_empresa": "Clinicas, despachos, asesorias, inmobiliarias",
+      "senal": "@factoriatech (20 mayo 2026) – regla sencilla para pymes",
+      "modulo": "Diagnostico de oportunidades + Runtime local",
+      "venta": "Regla automatica + calculadora cloud vs local en segundos",
+      "mensaje_comercial": "¿Local o ChatGPT? VirtuDirector IA te responde segun tus datos sensibles.",
+      "urgencia": "Alto"
+    },
+    {
+      "dolor": "Necesidad de probar modelos en local antes de pagar APIs o suscripciones",
+      "tipo_empresa": "Pymes, autonomos, pequenas consultoras",
+      "senal": "@factoriatech (19 mayo 2026) – Ollama para validar sin riesgo",
+      "modulo": "Diagnostico de oportunidades + Runtime local",
+      "venta": "Demo 'Prueba local primero' con Ollama",
+      "mensaje_comercial": "Valida primero en local. VirtuDirector IA te deja probar antes de pagar.",
+      "urgencia": "Alto"
+    },
+    {
+      "dolor": "Falta de claridad sobre cuando local es mas barato que nube",
+      "tipo_empresa": "Pymes con menos de 1000 consultas al dia",
+      "senal": "@factoriatech (20 mayo 2026) – volumen bajo = local mas economico",
+      "modulo": "Solucion low-cost",
+      "venta": "Comparativa automatica coste local vs API",
+      "mensaje_comercial": "¿Menos de 1000 consultas al dia? Local puede salir mas barato y mas seguro.",
+      "urgencia": "Medio-alto"
+    },
+    {
+      "dolor": "Pagar demasiadas SaaS cuando un stack low-cost ya sirve",
+      "tipo_empresa": "Pymes de 8-15 personas y autonomos",
+      "senal": "@jfaguila (20 mayo 2026) – n8n + ChatGPT Pro + Make",
+      "modulo": "Solucion low-cost",
+      "venta": "Tabla comparativa gasto actual vs stack recomendado",
+      "mensaje_comercial": "Deja de pagar SaaS innecesarios. El stack correcto puede amortizarse en semanas.",
+      "urgencia": "Alto"
+    },
+    {
+      "dolor": "Empleados o personal junior usan ChatGPT en PCs de empresa sin control",
+      "tipo_empresa": "Clinicas y despachos",
+      "senal": "@maaaterialgirl (20 mayo 2026) – uso directo en equipo de clinica",
+      "modulo": "Riesgo y gobierno + Runtime local",
+      "venta": "Informe de exposicion + paso a local",
+      "mensaje_comercial": "Tu equipo ya usa IA en el PC de empresa. VirtuDirector IA te da control total.",
+      "urgencia": "Alto"
+    },
+    {
+      "dolor": "Preocupacion por memoria externa y rastreo de patrones en cloud",
+      "tipo_empresa": "Clinicas y despachos con datos de salud o confidenciales",
+      "senal": "@RadarAI_es / @Danizamira / @anitahg (15-20 mayo 2026)",
+      "modulo": "Riesgo y gobierno + RAG cliente",
+      "venta": "Informe de exposicion de memoria + demo RAG local",
+      "mensaje_comercial": "Tus datos sensibles no deberian quedarse en memoria ajena. Usa RAG local.",
+      "urgencia": "Alto"
+    },
+    {
+      "dolor": "Coste alto o friccion del servicio empuja a usar ChatGPT como alternativa",
+      "tipo_empresa": "Clinicas y servicios profesionales sensibles",
+      "senal": "@th4miiii (20 mayo 2026) – paciente decide ir a ChatGPT",
+      "modulo": "Diagnostico de oportunidades + Solucion low-cost",
+      "venta": "Agente local de consulta rapida",
+      "mensaje_comercial": "Evita que tus clientes se vayan a ChatGPT. Primera capa local y segura.",
+      "urgencia": "Medio-alto"
+    }
+  ]
+}
