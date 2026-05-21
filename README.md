@@ -553,9 +553,14 @@ Additional repository documentation:
 - [docs/ARCHITECTURE.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/ARCHITECTURE.md)
 - [docs/OPERATIONS.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/OPERATIONS.md)
 - [docs/DEVELOPMENT.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/DEVELOPMENT.md)
+- [docs/IMPLEMENTATION_ENGINE_EXTENSION.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/IMPLEMENTATION_ENGINE_EXTENSION.md)
 
 ## Scope note
 
 Repository-facing documentation is in English.
 
 Curated intelligence datasets under `backend/app/data/curated_intel/` intentionally remain in Spanish because they are runtime product content for Spanish-language retrieval and operator workflows.
+
+An optional execution scaffold is also available under:
+
+- [extensions/implementation-engine/README.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/extensions/implementation-engine/README.md)

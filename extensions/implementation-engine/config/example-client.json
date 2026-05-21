@@ -1,0 +1,23 @@
+{
+  "client_name": "Demo Commerce SL",
+  "industry": "ecommerce",
+  "employee_count": 45,
+  "target_use_case": "customer_support_automation",
+  "runtime_preference": "hybrid",
+  "data_sensitivity": "medium",
+  "systems": [
+    "Shopify",
+    "Gmail",
+    "Shared drive",
+    "Helpdesk"
+  ],
+  "constraints": [
+    "No direct production writes without approval",
+    "Customer-visible replies must follow policy"
+  ],
+  "success_metrics": [
+    "Reduce first-response time by 40%",
+    "Deflect 25% of repetitive tickets",
+    "Keep escalation accuracy above 95%"
+  ]
+}
