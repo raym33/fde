@@ -62,9 +62,28 @@
             </div>
           </section>
 
-          <section class="rail-section" aria-label="Herramientas conectadas">
+          <section class="rail-section opportunity-panel" aria-label="Opportunity workbench">
             <div class="section-heading">
               <span>03</span>
+              <h2>Opportunity workbench</h2>
+            </div>
+            <form id="opportunityForm" class="scanner-form">
+              <label>
+                Question
+                <textarea id="opportunityQuestion" rows="5">Where should we implement AI first in a 500-employee SME with repetitive support, invoices, and internal document search?</textarea>
+              </label>
+              <label>
+                Employee count
+                <input id="opportunityEmployeeCount" type="number" min="1" value="500" />
+              </label>
+              <button id="opportunityButton" type="submit">Diagnose opportunities</button>
+            </form>
+            <div id="opportunityResult" class="scanner-result"></div>
+          </section>
+
+          <section class="rail-section" aria-label="Herramientas conectadas">
+            <div class="section-heading">
+              <span>04</span>
               <h2>Runtime</h2>
             </div>
             <div id="toolsStatus" class="tools-status">Comprobando...</div>
@@ -72,7 +91,7 @@
 
           <section class="rail-section process-scanner-panel" aria-label="Escáner de procesos">
             <div class="section-heading">
-              <span>04</span>
+              <span>05</span>
               <h2>Process scanner</h2>
             </div>
             <form id="processScannerForm" class="scanner-form">

@@ -6,6 +6,11 @@ const statePill = document.querySelector("#connectionState");
 const tenantId = document.querySelector("#tenantId");
 const clientName = document.querySelector("#clientName");
 const toolsStatus = document.querySelector("#toolsStatus");
+const opportunityForm = document.querySelector("#opportunityForm");
+const opportunityQuestion = document.querySelector("#opportunityQuestion");
+const opportunityEmployeeCount = document.querySelector("#opportunityEmployeeCount");
+const opportunityButton = document.querySelector("#opportunityButton");
+const opportunityResult = document.querySelector("#opportunityResult");
 const uploadForm = document.querySelector("#uploadForm");
 const documentFile = document.querySelector("#documentFile");
 const uploadButton = document.querySelector("#uploadButton");
@@ -35,6 +40,7 @@ const scannerResult = document.querySelector("#scannerResult");
 let knowledgeBlocks = [];
 let selectedIntelBlock = null;
 let lastKnowledgeQuery = "";
+let lastOpportunityDiagnosis = null;
 
 const DEFAULT_SCANNER_ARTIFACTS = `Procedimiento facturas | procedure | ERP | 300/mes
 Administración recibe facturas de proveedores por email, descarga PDF, copia importe, IVA, NIF e IBAN en Excel y valida manualmente en ERP.
@@ -212,6 +218,102 @@ function renderScannerResult(payload) {
       )
       .join("")}
   `;
+}
+
+function eurosRange(range) {
+  if (!Array.isArray(range) || range.length !== 2) return "n/a";
+  return `${Number(range[0]).toLocaleString("en-IE")} - ${Number(range[1]).toLocaleString("en-IE")} EUR`;
+}
+
+function renderOpportunityResult(payload) {
+  const diagnosis = payload?.diagnosis;
+  if (!diagnosis) {
+    opportunityResult.textContent = "No diagnosis returned.";
+    return;
+  }
+  lastOpportunityDiagnosis = diagnosis;
+  const opportunities = (diagnosis.top_opportunities || []).slice(0, 3);
+  opportunityResult.innerHTML = `
+    <div class="scanner-summary">
+      <strong>${escapeHtml(diagnosis.company_size)}</strong>
+      <p>Question: ${escapeHtml(diagnosis.question)}</p>
+      <p>Quick wins: ${escapeHtml((diagnosis.quick_wins || []).join(", ") || "none")}</p>
+    </div>
+    ${opportunities
+      .map(
+        (item) => `
+          <article class="scanner-candidate opportunity-card">
+            <div class="scanner-candidate-header">
+              <h3>${escapeHtml(item.title)}</h3>
+              <span class="scanner-score">${escapeHtml(item.score.total)}</span>
+            </div>
+            <p>${escapeHtml(item.problem)}</p>
+            <div class="scanner-pill-row">
+              <span class="scanner-pill">${escapeHtml(item.area)}</span>
+              <span class="scanner-pill">${escapeHtml(item.recommended_phase)}</span>
+              <span class="scanner-pill">risk ${escapeHtml(item.score.risk)}</span>
+            </div>
+            <p>Annual benefit: ${escapeHtml(eurosRange(item.annual_benefit_eur))}</p>
+            <p>First experiment: ${escapeHtml(item.first_experiment)}</p>
+            <div class="scanner-actions">
+              <button type="button" data-prompt="${escapeHtml(`Create a 90-day implementation roadmap for ${item.title} with ROI, risks, and owners for ${clientName.value || "the client"}`)}">Use in chat</button>
+              <button type="button" data-opportunity-bundle="${escapeHtml(item.id)}">Generate bundle</button>
+            </div>
+          </article>
+        `
+      )
+      .join("")}
+  `;
+}
+
+async function generateImplementationBundle(opportunityId) {
+  if (!lastOpportunityDiagnosis?.question) {
+    opportunityResult.textContent = "Run an opportunity diagnosis first.";
+    return;
+  }
+  const buttons = opportunityResult.querySelectorAll("[data-opportunity-bundle]");
+  buttons.forEach((button) => {
+    button.disabled = true;
+  });
+  try {
+    const response = await fetch("/opportunities/implementation-bundle", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        question: lastOpportunityDiagnosis.question,
+        employee_count: Number(opportunityEmployeeCount.value || "0") || null,
+        opportunity_id: opportunityId,
+        top_k: 8,
+        review: true,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    const bundle = payload.bundle;
+    const card = opportunityResult.querySelector(`[data-opportunity-bundle="${CSS.escape(opportunityId)}"]`)?.closest(".opportunity-card");
+    if (card) {
+      const detail = document.createElement("div");
+      detail.className = "bundle-result";
+      detail.innerHTML = `
+        <p><strong>Bundle created.</strong></p>
+        <p>Output: ${escapeHtml(bundle.output_dir)}</p>
+        <p>Skills: ${escapeHtml((bundle.skill_names || []).join(", ") || "none")}</p>
+        <p>Service file: ${escapeHtml(bundle.service_file)}</p>
+      `;
+      const existing = card.querySelector(".bundle-result");
+      if (existing) existing.remove();
+      card.append(detail);
+    }
+  } catch (error) {
+    opportunityResult.insertAdjacentHTML(
+      "afterbegin",
+      `<div class="status-line">Bundle generation error: ${escapeHtml(error.message)}</div>`
+    );
+  } finally {
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
+  }
 }
 
 function renderIntelExplorer() {
@@ -423,6 +525,12 @@ document.addEventListener("click", (event) => {
   renderIntelExplorer();
 });
 
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-opportunity-bundle]");
+  if (!button) return;
+  generateImplementationBundle(button.dataset.opportunityBundle);
+});
+
 async function loadToolsStatus() {
   try {
     const [searchResponse, documentResponse, lmStudioResponse, knowledgeResponse] = await Promise.all([
@@ -578,5 +686,34 @@ processScannerForm?.addEventListener("submit", async (event) => {
     scannerResult.textContent = `Error: ${error.message}`;
   } finally {
     scannerButton.disabled = false;
+  }
+});
+
+opportunityForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const question = opportunityQuestion.value.trim();
+  if (!question) {
+    opportunityResult.textContent = "Enter a question first.";
+    return;
+  }
+  opportunityButton.disabled = true;
+  opportunityResult.textContent = "Diagnosing opportunities...";
+  try {
+    const response = await fetch("/opportunities/diagnose", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        question,
+        employee_count: Number(opportunityEmployeeCount.value || "0") || null,
+        top_k: 6,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    renderOpportunityResult(payload);
+  } catch (error) {
+    opportunityResult.textContent = `Error: ${error.message}`;
+  } finally {
+    opportunityButton.disabled = false;
   }
 });

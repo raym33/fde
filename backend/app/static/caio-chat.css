@@ -446,6 +446,21 @@ textarea {
   background: #eef6f3;
 }
 
+.bundle-result {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d8e4de;
+  background: #f6faf8;
+  padding: 10px;
+}
+
+.bundle-result p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .intel-explorer {
   gap: 10px;
 }

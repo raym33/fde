@@ -258,6 +258,7 @@ See [backend/.env.example](/Users/mac/Documents/Codex/2026-05-20/claude-ha-termi
 
 - `POST /chat`
 - `POST /opportunities/diagnose`
+- `POST /opportunities/implementation-bundle`
 - `POST /process-scanner/analyze`
 
 ### Document ingestion
@@ -308,12 +309,13 @@ Typical usage flow:
 2. Upload client documents under `Documentos cliente`.
 3. Upload curated intelligence under `Intel IA diaria`.
 4. Use one of the preset prompts or write a custom question.
-5. Use `Explorador intel` to inspect:
+5. Use `Opportunity workbench` to run a structured diagnosis and generate an implementation bundle from a ranked opportunity.
+6. Use `Explorador intel` to inspect:
    - curated blocks,
    - direct searches,
    - detected query intent,
    - ranking reasons.
-6. Use `Process scanner` to submit structured process descriptions and review candidate automations.
+7. Use `Process scanner` to submit structured process descriptions and review candidate automations.
 
 ### Labs admin: `/admin/labs`
 
