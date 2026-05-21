@@ -245,7 +245,7 @@ def list_blocks(limit_per_block: int = 8) -> list[dict]:
         enriched["block"] = block
         buckets.setdefault(block, []).append(enriched)
 
-    order = ["intel", "dolores", "roadmaps", "stack", "sector_publico_salud", "otros"]
+    order = ["fundamentos", "intel", "dolores", "roadmaps", "stack", "sector_publico_salud", "otros"]
     out = []
     for key in order:
         items = buckets.get(key, [])
@@ -684,6 +684,10 @@ def _find_curated_relevance(lines: list[str], keywords: list[str], fallback: str
 
 def _infer_block(title: str, source_type: str) -> str:
     low = f"{title} {source_type}".lower()
+    if "curated_foundation" in low:
+        return "fundamentos"
+    if "fundamento" in low or "playbook" in low or "biblioteca" in low:
+        return "fundamentos"
     if "hospital" in low or "ayuntamiento" in low or "sanidad" in low or "health" in low:
         return "sector_publico_salud"
     if "dolor" in low:
@@ -699,6 +703,7 @@ def _infer_block(title: str, source_type: str) -> str:
 
 def _block_label(block_id: str) -> str:
     labels = {
+        "fundamentos": "Fundamentos base",
         "intel": "Intel IA diaria",
         "dolores": "Dolores detectados",
         "roadmaps": "Roadmaps e iniciativas",
