@@ -1,0 +1,160 @@
+{
+  "date": "2026-05-21",
+  "executive_summary": "Hoy destacan LM Studio MTP para IA local mas rapida, RAG local viable con hardware 600-800 EUR, framework D.A.T.A./FALITROKE para integrar IA en datos reales, cursos gratuitos de n8n + IA y señales institucionales de adopcion practica en pymes españolas. Tendencia clara: pymes priorizan soberania, bajo coste, trazabilidad y quick wins medibles.",
+  "signals": [
+    {
+      "title": "Camara de Madrid impulsa IA practica en pymes",
+      "source": "@CamaradeMadrid",
+      "topic": "IA en pymes",
+      "summary": "Colaboracion con South Summit 2026 para aplicacion practica de IA.",
+      "why_it_matters": "Valida demanda institucional de IA util para pymes españolas.",
+      "virtu_director_usage": "Usarlo como señal de mercado en Diagnostico y Ventas.",
+      "recommended_module": "Diagnostico de oportunidades / Ventas",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "Camara de Madrid + South Summit: foco en IA practica para pymes. Ideal para posicionar VirtuDirector IA como generador de roadmaps accionables."
+    },
+    {
+      "title": "LM Studio beta con MTP acelera IA local",
+      "source": "@Tukunero / @TommiyTw",
+      "topic": "LM Studio / IA local",
+      "summary": "Soporte MTP para inferencia local mas rapida con modelos como Qwen o Gemma.",
+      "why_it_matters": "Reduce barrera hardware para RAG local.",
+      "virtu_director_usage": "Actualizar guia Runtime local.",
+      "recommended_module": "Runtime local",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "LM Studio + MTP: IA local mas rapida. Quick win para pymes sin hardware caro."
+    },
+    {
+      "title": "Framework D.A.T.A./FALITROKE para IA util",
+      "source": "@falitroke",
+      "topic": "Automatizacion + errores",
+      "summary": "Conectar IA a datos internos, automatizar con n8n/scripts, generar alertas y revisar por humano.",
+      "why_it_matters": "Evita proyectos que se quedan en demo bonita.",
+      "virtu_director_usage": "Plantilla de roadmap 90 dias y checklist anti-demo.",
+      "recommended_module": "Roadmap 90 dias / Diagnostico",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "D.A.T.A./FALITROKE: datos internos + acciones + trazas + auditoria humana."
+    },
+    {
+      "title": "RAG local con equipo de 600-800 EUR",
+      "source": "@factoriatech",
+      "topic": "IA local + RAG",
+      "summary": "No hace falta PC de 4000 EUR; Ollama y buen indice pueden bastar para RAG documental.",
+      "why_it_matters": "Elimina la barrera economica mas comun.",
+      "virtu_director_usage": "Calculadora Runtime local.",
+      "recommended_module": "Runtime local / Solucion low-cost",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "RAG local con 600-800 EUR + Ollama. El truco esta en embeddings e indice."
+    },
+    {
+      "title": "Ciberseguridad en pymes españolas + IA",
+      "source": "@HalkonKeep / ITUser",
+      "topic": "Ciberseguridad + gobernanza",
+      "summary": "47,5 % de pymes españolas se sienten preparadas; 60 % invertiran mas. La IA exige seguridad desde el diseño.",
+      "why_it_matters": "Todo agente o RAG necesita checklist de riesgos.",
+      "virtu_director_usage": "Checklist ciber+IA en diagnostico.",
+      "recommended_module": "Riesgo y gobierno",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "IA exige seguridad desde el diseño. Añadir checklist ciber+IA a todo diagnostico."
+    },
+    {
+      "title": "Stats de integracion IA en pymes",
+      "source": "@BetoInciarte",
+      "topic": "ROI + errores",
+      "summary": "76 % pymes usan IA pero solo 14 % la integran; McKinsey: solo 39 % impacto EBIT.",
+      "why_it_matters": "Explica falta de ROI en herramientas aisladas.",
+      "virtu_director_usage": "Dashboard IA integrada vs chat aislado.",
+      "recommended_module": "Diagnostico / ROI",
+      "confidence": "Alto",
+      "requires_verification": true,
+      "compact_text": "Usar IA no es integrarla. VirtuDirector debe forzar workflows, datos, trazas y ROI."
+    },
+    {
+      "title": "Curso gratuito n8n + IA",
+      "source": "@RaiolaNetworks",
+      "topic": "Automatizacion low-cost",
+      "summary": "Curso gratuito con workflows reales de n8n + IA.",
+      "why_it_matters": "Reduce barrera de formacion.",
+      "virtu_director_usage": "Recurso asociado a templates n8n.",
+      "recommended_module": "Solucion low-cost / Formacion interna",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "Curso gratuito n8n + IA. Buen recurso para acompañar templates y adopcion low-cost."
+    },
+    {
+      "title": "Asistente local para 20 correos repetitivos",
+      "source": "@factoriatech",
+      "topic": "Automatizacion + IA local",
+      "summary": "Ollama/LM Studio puede responder correos repetitivos con base de conocimiento local.",
+      "why_it_matters": "Automatiza una tarea diaria muy comun.",
+      "virtu_director_usage": "Template asistente correos FAQ.",
+      "recommended_module": "Solucion low-cost / Runtime local",
+      "confidence": "Alto",
+      "requires_verification": false,
+      "compact_text": "Asistente local para correos repetitivos: coste cero tras setup y privacidad total."
+    }
+  ],
+  "product_opportunities": [
+    {
+      "oportunidad": "Template D.A.T.A. + n8n + Ollama",
+      "problema": "IA desconectada de procesos reales",
+      "feature": "Plantilla importable en Roadmap 90 dias",
+      "dificultad": "Baja",
+      "impacto": "Alto"
+    },
+    {
+      "oportunidad": "Calculadora equipo RAG 600-800 EUR",
+      "problema": "Duda sobre hardware minimo",
+      "feature": "Calculadora interactiva en Runtime local",
+      "dificultad": "Baja",
+      "impacto": "Muy alto"
+    },
+    {
+      "oportunidad": "Template asistente correos Ollama",
+      "problema": "Correos repetitivos sin solucion lista",
+      "feature": "Template FAQ + correo + revision humana",
+      "dificultad": "Baja",
+      "impacto": "Muy alto"
+    },
+    {
+      "oportunidad": "Checklist ciber+IA",
+      "problema": "Agentes sin gobierno ni permisos claros",
+      "feature": "Checklist obligatorio en Diagnostico",
+      "dificultad": "Baja",
+      "impacto": "Alto"
+    }
+  ],
+  "caio_prompts": [
+    "Usando el framework D.A.T.A., analiza mis procesos de facturacion y crea un roadmap de 90 dias con n8n + Ollama local.",
+    "Dime que equipo minimo necesito para montar RAG local sobre contratos y facturas sin subir datos a la nube.",
+    "Evalua riesgos RGPD/EU AI Act de un asistente local para correos en mi clinica.",
+    "Calcula ROI de automatizar emails repetitivos con n8n + IA local frente a hacerlo manual.",
+    "Dame quick wins de automatizacion con APIs gratuitas y n8n para mi ayuntamiento."
+  ],
+  "seven_day_actions": [
+    "Cargar señales del 21 de mayo en Intel IA diaria",
+    "Crear template asistente local correos FAQ",
+    "Implementar calculadora equipo RAG 600-800 EUR",
+    "Añadir checklist anti-demo D.A.T.A.",
+    "Actualizar Runtime local con LM Studio MTP y Ollama",
+    "Crear comparativa stack 35 EUR/mes vs local",
+    "Preparar posts LinkedIn sobre RAG local y D.A.T.A."
+  ],
+  "risks": [
+    "Riesgo tecnico: RAG local falla si embeddings, permisos o chunking son malos.",
+    "Riesgo legal: EU AI Act y RGPD siguen aplicando en usos sensibles aunque el runtime sea local.",
+    "Riesgo de privacidad: local no equivale a seguro si el indice mezcla permisos.",
+    "Riesgo de ROI: amortizaciones rapidas deben validarse con piloto.",
+    "Riesgo de calidad: respuestas automaticas requieren revision humana inicial."
+  ],
+  "linkedin_posts": [
+    "Post educativo: El error nº1 de las pymes con IA local es creer que necesitan un PC de 4000 EUR. Con 600-800 EUR + Ollama puedes empezar con RAG documental si diseñas bien embeddings e indice.",
+    "Post de opinion: La IA en pymes no falla porque no responda. Falla porque no toca datos reales. D.A.T.A.: datos, acciones, trazas y auditoria.",
+    "Post comercial: VirtuDirector IA convierte tu uso de IA en roadmaps medibles: diagnostico, RAG local, n8n, ROI y gobierno desde el dia 1."
+  ]
+}
