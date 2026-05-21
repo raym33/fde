@@ -25,4 +25,4 @@ jobs:
         run: make compile
 
       - name: Run labs smoke test
-        run: make smoke
+        run: make smoke VENV_PYTHON=python
