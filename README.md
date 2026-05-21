@@ -1,118 +1,349 @@
-# VirtuDirector IA - FDE Labs
+# VirtuDirector IA
 
-Forward-deployed AI engineering lab for SME AI implementation: opportunity
-diagnosis, tenant-scoped RAG, local/LAN model routing, continuous evaluation
-and human-approved promotion of measured improvements.
+VirtuDirector IA is a FastAPI-based backend and local web application for running an AI operating layer for SMEs. It combines:
 
-This repository is the working lab behind **VirtuDirector IA**, an AI Operating
-System / fractional CAIO for SMEs. It is designed around one core idea:
+- a CAIO-style chat workspace,
+- tenant-scoped document ingestion and retrieval,
+- deterministic opportunity diagnosis,
+- curated intelligence ingestion,
+- local/LAN model routing through LM Studio,
+- and an FDE Labs subsystem that evaluates changes before they are promoted.
 
-> AI systems for real companies should not change just because a model suggested
-> a better answer. They should be measured, reviewed and promoted with evidence.
+This repository is not a generic chatbot template. It is an operational lab and backend for testing how AI should be introduced, evaluated, and governed inside small and medium-sized businesses.
 
 License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
 
-Default admin UI credentials in development:
+## Repository purpose
+
+The repository solves four practical problems:
+
+1. Ingest client documents into a tenant-scoped knowledge layer.
+2. Answer AI implementation questions using deterministic scoring plus curated knowledge.
+3. Run measured lab experiments on RAG, routing, workflows, GRC, ROI, and market intelligence.
+4. Require human approval before promoting a measured improvement.
+
+## What is included
+
+### Core application
+
+- `backend/app/main.py`: FastAPI entrypoint.
+- `backend/app/api/`: HTTP routes.
+- `backend/app/core/`: orchestration, opportunity scoring, process scanner, routing.
+- `backend/app/rag/`: embeddings, ingestion, retriever, local store.
+- `backend/app/knowledge/`: curated knowledge ingestion, compaction, retrieval, ranking.
+- `backend/app/tools/`: web search and LM Studio integration.
+- `backend/app/static/`: operator UI and Labs admin UI.
+
+### FDE Labs
+
+- `backend/app/labs/`: lab definitions, schemas, service, registry, change promotion.
+- `backend/app/api/labs.py`: HTTP surface for labs.
+- `scripts/smoke_labs.py`: local smoke test.
+- `scripts/labs_quality_gate.py`: deterministic validation gate for labs.
+
+### Data and curated knowledge
+
+- `backend/app/data/solutions_catalog.json`: base catalog used by the solutions engine.
+- `backend/app/data/curated_intel/`: versioned curated knowledge loaded into the local knowledge store.
+
+### Tests and utilities
+
+- `tests/`: pytest suite.
+- `scripts/import_curated_intel.py`: imports curated markdown into the local knowledge DB.
+- `scripts/recompact_knowledge_briefs.py`: recomputes compact knowledge briefs with current logic.
+- `scripts/smoke_tests.py`: HTTP smoke tests against a running backend.
+
+## Runtime model
+
+The product can run in three modes:
+
+1. `demo_mode=true`: deterministic/demo behavior where external services are optional.
+2. Cloud-assisted mode: external web search and hosted model APIs enabled.
+3. Local/LAN mode: LM Studio provides OpenAI-compatible inference from the local machine or other machines on the LAN.
+
+## Authentication model
+
+There are two authentication paths:
+
+### Operator and tenant routes
+
+For most application routes, requests are resolved to a tenant principal.
+
+- In production: use `Authorization: Bearer <jwt>`.
+- In development: `X-Tenant-Id` and `X-User-Id` headers are accepted.
+
+### Labs admin routes
+
+Labs routes and the Labs admin UI use HTTP Basic auth.
+
+Development defaults:
 
 - username: `admin`
 - password: `change-me-admin`
 
-## Why this exists
+Change these values in `.env` before exposing the service outside local development.
 
-Most SMEs do not need a generic chatbot. They need a repeatable AI
-implementation process that answers:
+## Requirements
 
-1. Where should we apply AI first?
-2. Which tasks should stay local for privacy or cost?
-3. How do we connect internal documents safely?
-4. How do we compare RAG, agents and model-routing changes over time?
-5. How do we keep humans in control before production changes?
+Minimum requirements for local development:
 
-This repo is that lab.
+- Python 3.11 or newer
+- `venv`
+- `pip`
 
-## What this proves
+Optional but recommended:
 
-This project demonstrates the ability to:
+- PostgreSQL, if you want to match the configured `DATABASE_URL`
+- Redis, if you plan to extend the runtime to use it
+- Tesseract OCR, for scanned PDFs
+- LM Studio, for local/LAN inference
 
-- build FastAPI backends for AI products,
-- diagnose AI opportunities for SMEs with deterministic scoring,
-- run tenant-scoped RAG with document ingestion and retrieval evaluation,
-- route workloads between local/LAN and frontier-style models,
-- evaluate agent, GRC and market-intelligence improvements as measured labs,
-- promote changes through `report -> approval -> feature flag -> implemented`,
-- keep a curated intelligence layer available to the product at runtime.
+The current labs persistence uses SQLite through `LABS_SQLITE_PATH` when set, or `data/virtudirector_labs.sqlite3` by default.
 
-## Current scope
+## Quick start
 
-This is a serious MVP / lab, not a finished SaaS platform. Some capabilities are
-already measured end to end; others still use modeled proxies where full eval
-infrastructure would be excessive for the current stage. That distinction is
-called out explicitly below.
-
-## Quick commands
+From the repository root:
 
 ```bash
 make venv
 make install
-make smoke
-make labs-quality
-make test
+cp backend/.env.example backend/.env
 make run
 ```
 
-If the backend is already running locally, you can also verify the HTTP surface with:
+Open:
+
+- [http://127.0.0.1:8000/app](http://127.0.0.1:8000/app)
+- [http://127.0.0.1:8000/admin/labs](http://127.0.0.1:8000/admin/labs)
+- [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+## Exact setup steps
+
+### 1. Create the virtual environment
 
 ```bash
-make smoke-http
+python3 -m venv backend/.venv
 ```
 
-## Fast product walkthrough
+or:
 
-1. Upload client documents into tenant-scoped RAG.
-2. Ask the CAIO workbench where AI should be implemented first.
-3. Review deterministic scorecards and a 90-day roadmap.
-4. Run labs that compare baseline vs candidate behavior.
-5. Approve only improvements backed by evidence.
+```bash
+make venv
+```
 
-## Labs
+### 2. Install dependencies
 
-- `rag_grounding`: retrieval quality, citation coverage, hallucination controls, tenant isolation.
-- `model_routing_cost`: hybrid model routing, open-source/frontier split, cost and latency tradeoffs.
-- `agent_workflow`: planner/verifier/tooling patterns and task completion reliability.
-- `roi_solutions`: solution-ranking quality, ROI calibration, budget-fit for Spanish SMEs.
-- `grc_eu_ai_act`: EU AI Act readiness, GRC checklist quality, risk classification.
-- `market_intelligence`: market/regulatory/model monitoring and freshness of signals.
+```bash
+backend/.venv/bin/pip install -r backend/requirements.txt
+```
 
-### Measurement status
+or:
 
-All labs now perform deterministic measured experiments. A lab may return
-`no_material_improvement`; that is expected and desirable when the candidate
-does not beat the measured baseline above threshold.
+```bash
+make install
+```
 
-- `rag_grounding` and `model_routing_cost` perform **real measurement**:
-  - `rag_grounding` ingests a golden set into an isolated tenant store and
-    measures `recall@k`, first-citation precision and MRR for vector-only vs.
-    hybrid (BM25+vector, RRF) retrieval, plus a real cross-tenant leakage check.
-  - `model_routing_cost` computes cost, modeled quality, latency and
-    premium-escalation precision from an editable price table and workload mix
-    (`PRICE_EUR_PER_1M`, `WORKLOAD` in `evaluators/model_routing_cost.py`).
-    Quality is a modeled proxy until real evals (LLM-judge/Ragas) are wired.
-- `agent_workflow` executes a golden set of multi-step tasks against baseline
-  linear orchestration vs. bounded planner/verifier/retry policy.
-- `roi_solutions` runs real `solutions_engine.propose()` over Spanish SME cases
-  and compares it with a naive catalog ranking baseline.
-- `grc_eu_ai_act` evaluates role-specific EU AI Act/RGPD readiness rules against
-  expected risk classes, obligations, policies and source requirements.
-- `market_intelligence` measures clustering, dedupe and novelty filtering over a
-  corpus of useful signals, duplicates and noise before updates enter the core.
+### 3. Create the environment file
 
-## Run a Smoke Test
+```bash
+cp backend/.env.example backend/.env
+```
+
+### 4. Start the backend
+
+```bash
+make run
+```
+
+For LAN access:
+
+```bash
+make run-lan
+```
+
+or:
+
+```bash
+./scripts/run_backend_lan.sh
+```
+
+## Make targets
+
+The repository exposes these `make` targets:
+
+- `make help`: print available targets.
+- `make venv`: create `backend/.venv`.
+- `make install`: install backend dependencies into `backend/.venv`.
+- `make run`: start FastAPI on `127.0.0.1:8000`.
+- `make run-lan`: start FastAPI on `0.0.0.0:8000`.
+- `make smoke`: run `scripts/smoke_labs.py`.
+- `make smoke-http`: run `scripts/smoke_tests.py` against a running backend.
+- `make compile`: run Python bytecode compilation over `backend/app` and `scripts`.
+- `make test`: run pytest.
+- `make labs-quality`: run deterministic lab validation.
+- `make recompact-intel`: recompute all knowledge briefs with current compaction logic.
+
+## Environment variables
+
+Environment variables are loaded from `backend/.env`.
+
+Important variables:
+
+### Core runtime
+
+- `DEMO_MODE`
+- `ENVIRONMENT`
+- `DATA_REGION`
+
+### Search provider
+
+- `SEARCH_PROVIDER`
+- `BRAVE_SEARCH_API_KEY`
+- `TAVILY_API_KEY`
+- `PERPLEXITY_API_KEY`
+- `WEB_SEARCH_TIMEOUT_SECONDS`
+- `WEB_SEARCH_CACHE_TTL_SECONDS`
+- `WEB_SEARCH_DEFAULT_COUNTRY`
+- `WEB_SEARCH_DEFAULT_LANGUAGE`
+
+### Hosted model routing
+
+- `DEEPINFRA_API_KEY`
+- `TOGETHER_API_KEY`
+- `FIREWORKS_API_KEY`
+- `GROQ_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `MODEL_ROUTER_CHEAP`
+- `MODEL_ROUTER_MEDIUM`
+- `MODEL_ROUTER_PREMIUM`
+- `MODEL_EMBEDDINGS`
+
+### Local/LAN LM Studio
+
+- `LOCAL_LLM_ENABLED`
+- `LOCAL_LLM_PROVIDER`
+- `LM_STUDIO_BASE_URL`
+- `LM_STUDIO_API_KEY`
+- `LM_STUDIO_TIMEOUT_SECONDS`
+- `LM_STUDIO_CHAT_MODEL`
+- `LM_STUDIO_MODEL_CHEAP`
+- `LM_STUDIO_MODEL_MEDIUM`
+- `LM_STUDIO_MODEL_PREMIUM`
+- `LM_STUDIO_EMBEDDING_MODEL`
+- `LM_STUDIO_REMOTE_BASE_URLS`
+- `LOCAL_EMBEDDING_FALLBACK`
+
+### Persistence and auth
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `LABS_SQLITE_PATH`
+- `JWT_SECRET`
+- `ADMIN_BASIC_USERNAME`
+- `ADMIN_BASIC_PASSWORD`
+
+See [backend/.env.example](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/backend/.env.example) for defaults and comments.
+
+## Main HTTP routes
+
+### Public or development-friendly routes
+
+- `GET /`
+- `GET /healthz`
+- `GET /app`
+- `GET /docs`
+
+### Chat and operator workflows
+
+- `POST /chat`
+- `POST /opportunities/diagnose`
+- `POST /process-scanner/analyze`
+
+### Document ingestion
+
+- `POST /documents`
+- `GET /documents/status`
+
+### Knowledge ingestion and retrieval
+
+- `GET /knowledge/updates/status`
+- `POST /knowledge/updates`
+- `GET /knowledge/updates`
+- `GET /knowledge/briefs`
+- `GET /knowledge/blocks`
+- `GET /knowledge/use-cases`
+- `POST /knowledge/solutions`
+
+### Tool status
+
+- `GET /tools/web-search/status`
+- `GET /tools/web-search/test`
+- `GET /tools/lm-studio/status`
+- `GET /tools/lm-studio/test`
+
+### Labs admin routes
+
+- `GET /labs/catalog`
+- `GET /labs/schedule/preview`
+- `POST /labs/experiments/run`
+- `GET /labs/runs`
+- `GET /labs/reports`
+- `GET /labs/reports/{report_id}`
+- `POST /labs/reports/{report_id}/decision`
+- `GET /labs/changes`
+- `GET /labs/changes/{change_id}`
+- `POST /labs/changes/{change_id}/apply`
+- `GET /labs/feature-flags`
+
+## How to use the web application
+
+### Operator workspace: `/app`
+
+The `/app` interface is the main workspace for day-to-day usage.
+
+Typical usage flow:
+
+1. Set `Tenant` and `Company`.
+2. Upload client documents under `Documentos cliente`.
+3. Upload curated intelligence under `Intel IA diaria`.
+4. Use one of the preset prompts or write a custom question.
+5. Use `Explorador intel` to inspect:
+   - curated blocks,
+   - direct searches,
+   - detected query intent,
+   - ranking reasons.
+6. Use `Process scanner` to submit structured process descriptions and review candidate automations.
+
+### Labs admin: `/admin/labs`
+
+The Labs admin panel is for measured evaluation and change promotion.
+
+Typical usage flow:
+
+1. Log in with admin Basic auth.
+2. Review available labs.
+3. Run a full experiment batch or a single lab.
+4. Inspect reports with baseline vs candidate evidence.
+5. Approve or reject reports.
+6. Apply approved staged changes.
+7. Inspect resulting feature flags.
+
+## How to use the repository from the command line
+
+### Run the local labs smoke test
 
 ```bash
 make smoke
 ```
 
-This creates a local SQLite DB at `./data/virtudirector_labs.sqlite3`, runs all labs, stores runs and proposed reports, then approves one report.
+This command:
+
+1. initializes the local labs database,
+2. runs every registered lab,
+3. stores run records,
+4. stores proposed reports,
+5. approves one report as part of the smoke flow.
 
 Expected output shape:
 
@@ -120,129 +351,171 @@ Expected output shape:
 Catalog: 6 labs
 Runs: 6
 Reports proposed: N
-- rag_grounding: ...
-- model_routing_cost: ...
+...
 OK
 ```
 
-## Labs Quality Gate
+### Run the lab quality gate
 
-For day-to-day lab development, use:
+```bash
+make labs-quality
+```
+
+This command validates that:
+
+1. every lab defined in the catalog is registered,
+2. every lab is deterministic across two consecutive runs,
+3. scores and metrics are well-formed,
+4. report-producing labs generate valid report drafts.
+
+### Run the test suite
+
+```bash
+make test
+```
+
+The test suite covers:
+
+- knowledge ranking behavior,
+- explainable search metadata,
+- lab quality gate behavior,
+- lab persistence,
+- report approval and change application flow.
+
+### Rebuild all knowledge briefs
+
+```bash
+make recompact-intel
+```
+
+Use this after changing knowledge compaction logic in `backend/app/knowledge/updates.py`.
+
+### Import curated intelligence from versioned markdown
+
+```bash
+backend/.venv/bin/python scripts/import_curated_intel.py --date 2026-05-21
+```
+
+Common options:
+
+- `--date <folder>`: import only one dated folder under `backend/app/data/curated_intel/`
+- `--uploaded-by <name>`
+- `--scope global|internal`
+- `--source-type <value>`
+
+## How the knowledge layer works
+
+The knowledge subsystem stores two related records:
+
+1. `knowledge_updates`: raw ingested documents and metadata.
+2. `knowledge_briefs`: compacted summaries used for retrieval.
+
+The workflow is:
+
+1. ingest markdown, text, PDF, or DOCX,
+2. parse and normalize,
+3. compact into summary, tags, key points, and relevance fields,
+4. store a retrieval-ready brief,
+5. rank briefs for future operator questions.
+
+The ranking layer currently supports:
+
+- accent-insensitive matching,
+- token expansion,
+- field weighting,
+- phrase boosts,
+- sector boosts,
+- query-intent detection,
+- explainable search output.
+
+## How the labs subsystem works
+
+The labs subsystem uses a fixed lifecycle:
+
+1. a lab definition exists in `backend/app/labs/catalog.py`,
+2. a concrete evaluator class is registered in `backend/app/labs/registry.py`,
+3. the lab runs a deterministic experiment,
+4. the service stores a `lab_run`,
+5. if the threshold is exceeded, the lab generates a `CoreReportDraft`,
+6. a human approves or rejects the report,
+7. approved reports create staged changes,
+8. staged changes can be applied,
+9. applied changes create or update feature flags.
+
+Current labs:
+
+- `rag_grounding`
+- `model_routing_cost`
+- `agent_workflow`
+- `roi_solutions`
+- `grc_eu_ai_act`
+- `market_intelligence`
+
+## How to add a new lab
+
+1. Add a catalog entry in [backend/app/labs/catalog.py](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/backend/app/labs/catalog.py).
+2. Create an evaluator in `backend/app/labs/evaluators/`.
+3. Inherit from the base lab contract.
+4. Register the evaluator with `@register_lab("your_lab_id")`.
+5. Ensure `run()` is deterministic.
+6. Ensure `build_report()` returns a valid reviewable draft.
+7. Run:
 
 ```bash
 make labs-quality
 make test
+make smoke
 ```
 
-`make labs-quality` validates the lab layer without mutating the database:
+## How to use LM Studio
 
-- every catalog lab is registered;
-- every lab is deterministic across two consecutive runs;
-- each result has bounded scores and baseline/candidate metrics;
-- every material improvement builds a valid human-reviewable Core Report draft.
+### Local machine
 
-`make test` runs pytest coverage for:
+1. Start LM Studio.
+2. Enable its OpenAI-compatible server.
+3. Set:
 
-- the quality gate,
-- run/report persistence,
-- report approval -> staged change -> implementation,
-- failed lab isolation so one broken evaluator does not kill the whole batch.
+```env
+LOCAL_LLM_ENABLED=true
+LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1
+```
 
-### Adding a New Lab
+4. Configure chat and embedding model names in `.env`.
 
-1. Add a `LabDefinition` in [catalog.py](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/backend/app/labs/catalog.py).
-2. Create an evaluator under `backend/app/labs/evaluators/`.
-3. Implement `BaseLab.run()` and `BaseLab.build_report()`.
-4. Decorate the class with `@register_lab("your_lab_id")`.
-5. Run `make labs-quality && make test && make smoke`.
+### Other machines on the LAN
 
-The registry is intentionally pluggable: adding a lab should not require editing
-central routing code beyond the catalog definition and module list.
+1. Enable network serving in LM Studio on the remote machine.
+2. Add its URL to:
 
-## Run the API
+```env
+LM_STUDIO_REMOTE_BASE_URLS=http://192.168.x.y:1234/v1,http://192.168.x.z:1234/v1
+```
+
+3. Restart the backend.
+4. Inspect:
+
+- `GET /tools/lm-studio/status`
+- the `Runtime` panel in `/app`
+
+## Minimal end-to-end usage example
+
+### 1. Start the backend
 
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload
+make run
 ```
 
-Useful endpoints:
+### 2. Upload a text document into RAG
 
-- `GET /health`
-- `GET /app`
-- `GET /admin/labs`
-- `POST /chat`
-- `POST /opportunities/diagnose`
-- `POST /process-scanner/analyze`
-- `POST /documents`
-- `GET /knowledge/use-cases`
-- `POST /knowledge/solutions`
-- `GET /tools/web-search/status`
-- `GET /tools/web-search/test?q=EU+AI+Act+Spain`
-- `GET /tools/lm-studio/status`
-- `GET /tools/lm-studio/test`
-- `GET /documents/status`
-- `GET /labs/catalog`
-- `GET /labs/schedule/preview`
-- `POST /labs/experiments/run`
-- `GET /labs/runs?limit=20`
-- `GET /labs/reports`
-- `GET /labs/reports/{report_id}`
-- `POST /labs/reports/{report_id}/decision`
-- `GET /labs/changes`
-- `GET /labs/feature-flags`
-- `POST /labs/changes/{change_id}/apply`
+```bash
+curl -X POST http://127.0.0.1:8000/documents \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: tester' \
+  -H 'X-Client-Name: Demo SL' \
+  -F 'file=@/absolute/path/to/file.txt'
+```
 
-## Admin UI
-
-The app UI and Labs admin panel are served directly by FastAPI, so no Node or frontend build is required:
-
-[http://127.0.0.1:8000/app](http://127.0.0.1:8000/app)
-
-[http://127.0.0.1:8000/admin/labs](http://127.0.0.1:8000/admin/labs)
-
-Security note:
-
-- `/app` is the operator/user workspace.
-- `/admin/labs` and `/labs/*` require admin Basic auth.
-- `/tools/*` and `/documents/status` require tenant/user authentication headers or a valid JWT.
-
-The CAIO chat supports:
-
-- Streaming chat via `/chat`.
-- Intent routing into strategy, GRC, research, build, solution and opportunity-discovery flows.
-- AI opportunity diagnosis for questions like “dónde implementar IA primero”.
-- Deterministic solution recommendations with scorecards and ROI.
-- Tenant-scoped RAG in demo mode.
-
-## Suggested demo flow
-
-If you are reviewing this repo as a CTO, client or hiring team, the shortest
-path to understanding it is:
-
-1. `make smoke`
-2. `make run`
-3. Open `/app`
-4. Ask: `dónde debería implementar IA primero en una pyme de 500 empleados`
-5. Open `/admin/labs`
-6. Run a lab and inspect the proposed report
-
-## AI Opportunity Discovery
-
-Many SMEs do not know where AI should be implemented first. The
-`opportunity` workflow creates a deterministic consulting-style map:
-
-`company question + client RAG + daily AI intelligence -> area opportunities -> scorecard -> 90-day roadmap`
-
-The score is computed in code from impact, effort, data readiness, risk,
-time-to-value and strategic fit. The LLM may add narrative in non-demo mode, but
-it does not invent the ranking.
-
-API:
+### 3. Ask for an opportunity diagnosis
 
 ```bash
 curl -X POST http://127.0.0.1:8000/opportunities/diagnose \
@@ -250,237 +523,39 @@ curl -X POST http://127.0.0.1:8000/opportunities/diagnose \
   -H 'X-Tenant-Id: demo-tenant' \
   -H 'X-User-Id: tester' \
   -H 'X-Client-Name: Demo SL' \
-  -d '{"question":"dónde debería implementar IA primero en una pyme de 500 empleados","employee_count":500}'
+  -d '{"question":"Where should we implement AI first in a 500-employee SME?","employee_count":500}'
 ```
 
-Natural chat examples:
-
-- “Dónde debería implementar IA primero en una pyme de 500 empleados.”
-- “Hazme un mapa de oportunidades IA por departamentos.”
-- “Qué procesos debería automatizar con IA antes de invertir fuerte.”
-
-The Labs panel supports:
-
-- Viewing all six labs and their cadence/threshold.
-- Running one lab or all labs.
-- Reviewing Core Reports with evidence, metrics, rollout and rollback plans.
-- Approving, rejecting and marking approved reports as implemented.
-- Converting approved reports into staged core changes.
-- Applying staged changes as feature flags.
-- Viewing recent measured lab runs.
-
-## AI Implementation Scanner
-
-The process scanner is the first step toward a broader "scanner + sandbox"
-implementation workflow. It does not discover or modify live systems. It takes
-process artifacts provided by a technician or client and turns them into:
-
-- an operational process map,
-- systems/data/actors detected from the artifacts,
-- automation candidates,
-- deployability scores,
-- sandbox-first evaluation plans,
-- governance notes and missing context.
-
-API:
+### 4. Run a lab batch as admin
 
 ```bash
-curl -X POST http://127.0.0.1:8000/process-scanner/analyze \
+curl -X POST http://127.0.0.1:8000/labs/experiments/run \
+  -u admin:change-me-admin \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-Id: demo-tenant' \
-  -H 'X-User-Id: tester' \
-  -H 'X-Client-Name: Demo SL' \
-  -d '{
-    "company_name":"Demo SL",
-    "employee_count":500,
-    "risk_tolerance":"low",
-    "artifacts":[
-      {
-        "name":"Facturas proveedores",
-        "artifact_type":"procedure",
-        "system":"ERP",
-        "volume_per_month":300,
-        "text":"Administración recibe facturas por email, copia campos en Excel y valida manualmente en ERP."
-      }
-    ]
-  }'
+  -d '{"triggered_by":"manual"}'
 ```
 
-The design principle is deliberately conservative:
+## CI
 
-`artifact intake -> process map -> automation candidate -> sandbox plan -> measured go/no-go -> human approval`
+GitHub Actions currently runs:
 
-## Labs-to-Core Promotion
+1. `make compile`
+2. `make labs-quality VENV_PYTHON=python`
+3. `make test VENV_PYTHON=python`
+4. `make smoke VENV_PYTHON=python`
 
-Reports move through a controlled promotion path:
+CI definition: [.github/workflows/ci.yml](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/.github/workflows/ci.yml)
 
-`proposed report -> approved report -> staged core change -> applied feature flag -> implemented report`
+## Documentation map
 
-This keeps lab discoveries auditable. The app does not auto-mutate core behavior just because a lab found a better result; a human approval creates a staged change, and a separate apply step enables the corresponding feature flag.
+Additional repository documentation:
 
-## External Tools
+- [docs/ARCHITECTURE.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/ARCHITECTURE.md)
+- [docs/OPERATIONS.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/OPERATIONS.md)
+- [docs/DEVELOPMENT.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/DEVELOPMENT.md)
 
-The first concrete tool layer is web/market search. It is pluggable and server-side only:
+## Scope note
 
-- `SEARCH_PROVIDER=auto` chooses Brave, then Tavily, then Perplexity if a key exists.
-- `SEARCH_PROVIDER=brave` uses Brave Search API.
-- `SEARCH_PROVIDER=tavily` uses Tavily Search API.
-- `SEARCH_PROVIDER=perplexity` uses Perplexity Search API.
-- `DEMO_MODE=true` always returns clearly labeled demo results.
+Repository-facing documentation is in English.
 
-To activate real search:
-
-```bash
-cd backend
-cp .env.example .env
-# set DEMO_MODE=false and one provider key
-uvicorn app.main:app --reload
-```
-
-Check readiness:
-
-```bash
-curl http://127.0.0.1:8000/tools/web-search/status
-curl 'http://127.0.0.1:8000/tools/web-search/test?q=chatbot%20IA%20pyme%20Espana'
-```
-
-## Document Extraction
-
-Clients can upload TXT/MD, DOCX and PDF files to tenant-scoped RAG:
-
-```bash
-curl -X POST http://127.0.0.1:8000/documents \
-  -H 'X-Tenant-Id: demo-tenant' \
-  -H 'X-User-Id: tester' \
-  -F 'file=@policy.docx' \
-  -F 'title=AI Policy'
-```
-
-Extraction stack:
-
-- TXT/MD: native decoding with encoding fallback.
-- DOCX: `python-docx`, including paragraphs and tables.
-- PDF: `pypdf` text extraction.
-- OCR fallback: `PyMuPDF + pytesseract + Pillow` when the PDF has little/no embedded text and the system `tesseract` binary is installed.
-
-Check local parser readiness:
-
-```bash
-curl http://127.0.0.1:8000/documents/status
-```
-
-## LM Studio Local/LAN Models
-
-LM Studio is supported through its OpenAI-compatible API (`/v1/chat/completions`,
-`/v1/models`, and `/v1/embeddings` when an embedding model is loaded).
-
-Local Mac example:
-
-```env
-DEMO_MODE=true
-LOCAL_LLM_ENABLED=true
-LOCAL_LLM_PROVIDER=lmstudio
-LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1
-LM_STUDIO_CHAT_MODEL=gemma-4-26b-a4b-it-mlx
-LM_STUDIO_MODEL_CHEAP=qwen3.6-27b
-LM_STUDIO_MODEL_MEDIUM=gemma-4-26b-a4b-it-mlx
-LM_STUDIO_MODEL_PREMIUM=gemma-4-26b-a4b-it-mlx
-LM_STUDIO_EMBEDDING_MODEL=text-embedding-nomic-embed-text-v1.5
-```
-
-LAN machines:
-
-```env
-LM_STUDIO_BASE_URL=http://192.168.1.50:1234/v1
-LM_STUDIO_REMOTE_BASE_URLS=http://192.168.1.51:1234/v1,http://192.168.1.52:1234/v1
-```
-
-To let another computer on the same network open VirtuDirector IA, start the
-backend on all interfaces:
-
-```bash
-cd backend
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Then open `http://<this-mac-lan-ip>:8000/app` from the other computer. On this
-Mac the LAN IP will depend on the network you are on.
-
-For each LM Studio worker machine, enable its local server and expose it on the
-LAN, then add that machine to `LM_STUDIO_REMOTE_BASE_URLS`. Keep this on a
-trusted private network only; do not expose LM Studio or this backend directly
-to the public internet without auth, TLS, rate limits and network firewalling.
-
-Check:
-
-```bash
-curl http://127.0.0.1:8000/tools/lm-studio/status
-curl 'http://127.0.0.1:8000/tools/lm-studio/test?prompt=di%20listo'
-```
-
-## Daily AI Intelligence Knowledge Base
-
-Technicians can upload `.txt`, `.md` or `.pdf` files with fresh AI information
-from `/app` or via API. The system stores the raw extracted text for audit, then
-creates a compact brief used by the CAIO core:
-
-`raw document -> extracted text -> compact brief -> tags/relevance -> RAG chunk`
-
-The compact brief is what the orchestrator retrieves, so long daily notes do not
-flood the model context.
-
-API:
-
-```bash
-curl -X POST http://127.0.0.1:8000/knowledge/updates \
-  -H 'X-Tenant-Id: platform' \
-  -H 'X-User-Id: technician' \
-  -F 'file=@latest-ai-news.md' \
-  -F 'title=Daily AI Update' \
-  -F 'source_url=https://example.com/source' \
-  -F 'source_type=daily_ai_update' \
-  -F 'scope=global'
-
-curl http://127.0.0.1:8000/knowledge/updates/status
-curl 'http://127.0.0.1:8000/knowledge/briefs?q=rag%20costes%20modelos'
-curl 'http://127.0.0.1:8000/knowledge/blocks?limit_per_block=4'
-```
-
-The `/app` workspace includes an **Explorador intel** panel that groups this
-knowledge into practical blocks such as `intel`, `dolores`, `roadmaps`,
-`stack` and sector-specific notes for health/public administration.
-
-### Curated seed intel
-
-Versioned curated intelligence can also live in the repo under:
-
-`backend/app/data/curated_intel/<YYYY-MM-DD>/`
-
-This is useful for importing analyst notes, pain-point research, roadmap
-initiatives or stack summaries that we want available locally in the app from
-day one. Import them into the local knowledge store with:
-
-```bash
-backend/.venv/bin/python scripts/import_curated_intel.py --date 2026-05-20
-backend/.venv/bin/python scripts/recompact_knowledge_briefs.py
-```
-
-The importer marks these entries as `curated_operator_intel` so they remain
-distinguishable from directly uploaded daily news or docs.
-
-The recompact script is safe to run after improving the summarization logic; it
-refreshes existing knowledge briefs in SQLite without duplicating source docs.
-
-Example:
-
-```bash
-curl -X POST http://localhost:8000/labs/experiments/run \
-  -H 'Content-Type: application/json' \
-  -d '{"lab_id":"grc_eu_ai_act","triggered_by":"admin"}'
-```
-
-## Product Rule
-
-Labs never auto-change production. They generate evidence-backed reports:
-
-`experiment -> measured run -> Core Report -> human approval -> staging -> evals -> feature flag -> production`
+Curated intelligence datasets under `backend/app/data/curated_intel/` intentionally remain in Spanish because they are runtime product content for Spanish-language retrieval and operator workflows.

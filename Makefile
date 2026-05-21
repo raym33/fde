@@ -5,17 +5,17 @@ PIP ?= backend/.venv/bin/pip
 .PHONY: help venv install run run-lan smoke smoke-http compile test labs-quality recompact-intel
 
 help:
-	@echo "Targets disponibles:"
-	@echo "  make venv            - crea backend/.venv"
-	@echo "  make install         - instala dependencias del backend"
-	@echo "  make run             - levanta FastAPI en localhost:8000"
-	@echo "  make run-lan         - levanta FastAPI en 0.0.0.0:8000"
-	@echo "  make smoke           - ejecuta smoke_labs.py"
-	@echo "  make smoke-http      - ejecuta smoke_tests.py contra un backend en marcha"
-	@echo "  make compile         - compila backend/app y scripts"
-	@echo "  make test            - ejecuta pytest"
-	@echo "  make labs-quality    - valida determinismo y reports de labs"
-	@echo "  make recompact-intel - recompone briefs ya ingeridos"
+	@echo "Available targets:"
+	@echo "  make venv            - create backend/.venv"
+	@echo "  make install         - install backend dependencies"
+	@echo "  make run             - start FastAPI on localhost:8000"
+	@echo "  make run-lan         - start FastAPI on 0.0.0.0:8000"
+	@echo "  make smoke           - run smoke_labs.py"
+	@echo "  make smoke-http      - run smoke_tests.py against a running backend"
+	@echo "  make compile         - compile backend/app and scripts"
+	@echo "  make test            - run pytest"
+	@echo "  make labs-quality    - validate lab determinism and report drafts"
+	@echo "  make recompact-intel - rebuild previously ingested knowledge briefs"
 
 venv:
 	$(PYTHON) -m venv backend/.venv

@@ -1,11 +1,11 @@
-"""Dependencias de FastAPI: autenticación y resolución de tenant.
+"""FastAPI dependencies for authentication and tenant resolution.
 
-Cada petición se asocia a un `Principal` (tenant + usuario). El `tenant_id` es la
-clave del aislamiento de datos y se propaga a RAG, store y auditoría.
+Each request is resolved to a `Principal` (tenant + user). The `tenant_id` is
+the isolation key used by RAG, persistence, and audit paths.
 
-- Producción: valida un JWT (Authorization: Bearer ...) firmado con `JWT_SECRET`
-  y extrae `tenant_id`/`sub`.
-- Desarrollo: si no hay JWT, acepta cabeceras `X-Tenant-Id` y `X-User-Id`.
+- Production: validates a JWT (`Authorization: Bearer ...`) signed with
+  `JWT_SECRET` and extracts `tenant_id` / `sub`.
+- Development: if no JWT is provided, accepts `X-Tenant-Id` and `X-User-Id`.
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ async def get_principal(
             client_name=claims.get("client_name", claims["tenant_id"]),
         )
 
-    # Modo desarrollo: cabeceras simplificadas.
+    # Development mode: simplified headers are accepted.
     if settings.environment != "production" and x_tenant_id:
         return Principal(
             tenant_id=x_tenant_id,
@@ -52,7 +52,7 @@ async def get_principal(
             client_name=x_client_name or x_tenant_id,
         )
 
-    raise HTTPException(status_code=401, detail="Autenticación requerida")
+    raise HTTPException(status_code=401, detail="Authentication required")
 
 
 def _decode_jwt(token: str, secret: str) -> dict:
@@ -61,7 +61,7 @@ def _decode_jwt(token: str, secret: str) -> dict:
 
         return jwt.decode(token, secret, algorithms=["HS256"])
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=401, detail="Token inválido") from exc
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 
 async def require_admin_access(
@@ -76,7 +76,7 @@ async def require_admin_access(
     if not valid:
         raise HTTPException(
             status_code=401,
-            detail="Credenciales de admin inválidas",
+            detail="Invalid admin credentials",
             headers={"WWW-Authenticate": "Basic"},
         )
     return {"username": credentials.username}

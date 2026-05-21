@@ -47,7 +47,7 @@ async def import_one(path: Path, *, uploaded_by: str, scope: str, source_type: s
 
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--date", default=None, help="Subcarpeta de fecha dentro de curated_intel")
+    parser.add_argument("--date", default=None, help="Date subfolder inside curated_intel")
     parser.add_argument("--uploaded-by", default="seed-import")
     parser.add_argument("--scope", default="global", choices=["global", "internal"])
     parser.add_argument("--source-type", default="curated_operator_intel")
@@ -56,13 +56,13 @@ async def main() -> int:
     init_db()
     base = CURATED_DIR / args.date if args.date else CURATED_DIR
     if not base.exists():
-        raise SystemExit(f"No existe la carpeta: {base}")
+        raise SystemExit(f"Folder does not exist: {base}")
 
     files = sorted(base.rglob("*.md"))
     if not files:
-        raise SystemExit(f"No hay markdowns para importar en: {base}")
+        raise SystemExit(f"No markdown files found in: {base}")
 
-    print(f"Importando {len(files)} documentos desde {base}")
+    print(f"Importing {len(files)} documents from {base}")
     imported = 0
     duplicates = 0
     for path in files:
@@ -80,7 +80,7 @@ async def main() -> int:
 
     current = updates.status()
     print(
-        f"Estado final: updates={current['updates']} briefs={current['briefs']} "
+        f"Final status: updates={current['updates']} briefs={current['briefs']} "
         f"imported={imported} duplicates={duplicates}"
     )
     return 0

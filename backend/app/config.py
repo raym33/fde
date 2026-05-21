@@ -1,6 +1,7 @@
-"""Configuración central de la aplicación (pydantic-settings).
+"""Central application settings based on pydantic-settings.
 
-Todas las opciones se leen de variables de entorno / .env. Ver `.env.example`.
+All options are loaded from environment variables or `backend/.env`.
+See `backend/.env.example` for defaults and comments.
 """
 from __future__ import annotations
 
@@ -17,12 +18,12 @@ DEFAULT_SQLITE_PATH = PROJECT_ROOT / "data" / "virtudirector_labs.sqlite3"
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Modo
+    # Runtime mode
     demo_mode: bool = True
     environment: str = "development"
 
-    # Claves de proveedores (LiteLLM las recoge de las env vars estándar,
-    # pero las exponemos aquí para validación y para el health check).
+    # Provider keys. LiteLLM reads the standard environment variables, but they
+    # are exposed here for validation and runtime status reporting.
     deepinfra_api_key: str | None = None
     together_api_key: str | None = None
     fireworks_api_key: str | None = None
@@ -30,7 +31,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     openai_api_key: str | None = None
 
-    # Herramientas externas
+    # External tools
     search_provider: str = "auto"  # auto | brave | tavily | perplexity | demo
     brave_search_api_key: str | None = None
     tavily_api_key: str | None = None
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     web_search_default_country: str = "ES"
     web_search_default_language: str = "es"
 
-    # Identificadores de modelo por tier
+    # Model identifiers by tier
     model_router_cheap: str = "deepinfra/meta-llama/Meta-Llama-3.1-8B-Instruct"
     model_router_medium: str = "deepinfra/Qwen/Qwen3-235B-A22B"
     model_router_premium: str = "anthropic/claude-sonnet-4-6"
@@ -60,19 +61,19 @@ class Settings(BaseSettings):
     lm_studio_remote_base_urls: str = ""  # comma-separated http://host:1234/v1
     local_embedding_fallback: bool = True
 
-    # Infraestructura
+    # Infrastructure
     database_url: str = (
         "postgresql+psycopg://postgres:postgres@localhost:5432/virtudirector"
     )
     redis_url: str = "redis://localhost:6379/0"
     labs_sqlite_path: str | None = None
 
-    # Observabilidad
+    # Observability
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_host: str = "https://cloud.langfuse.com"
 
-    # Auth y límites
+    # Auth and limits
     jwt_secret: str = "dev-secret-change-me"
     admin_basic_username: str = "admin"
     admin_basic_password: str = "change-me-admin"

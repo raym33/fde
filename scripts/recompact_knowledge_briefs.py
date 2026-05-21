@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recompacta briefs de conocimiento ya ingeridos con la lógica actual."""
+"""Rebuild already ingested knowledge briefs with the current compaction logic."""
 from __future__ import annotations
 
 import sys
@@ -17,7 +17,7 @@ from app.knowledge import updates  # noqa: E402
 def main() -> int:
     result = updates.recompact_all_briefs()
     print(
-        f"Knowledge briefs recompactados: refreshed={result.refreshed} skipped={result.skipped}"
+        f"Knowledge briefs rebuilt: refreshed={result.refreshed} skipped={result.skipped}"
     )
     return 0
 
