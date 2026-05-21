@@ -373,9 +373,9 @@ def recompact_all_briefs() -> KnowledgeRecompactResult:
     return KnowledgeRecompactResult(refreshed=refreshed, skipped=skipped)
 
 
-def list_briefs(query: str | None = None, limit: int = 10) -> list[dict]:
+def list_briefs(query: str | None = None, limit: int = 10, explain: bool = False) -> list[dict]:
     if query:
-        return _rank_briefs(query, limit)
+        return _rank_briefs(query, limit, explain=explain)
     with db() as conn:
         rows = conn.execute(
             """
@@ -456,7 +456,7 @@ def _find_by_hash(content_hash: str) -> dict | None:
     return _row_to_update(row) if row else None
 
 
-def _rank_briefs(query: str, limit: int) -> list[dict]:
+def _rank_briefs(query: str, limit: int, explain: bool = False) -> list[dict]:
     tokens = _tokens(query)
     expanded_tokens = _expand_query_tokens(tokens)
     folded_query = _fold(query)
@@ -493,16 +493,37 @@ def _rank_briefs(query: str, limit: int) -> list[dict]:
                 ]
             )
         )
+        phrase_score = _phrase_match_score(folded_haystack, query_phrases)
+        sector_score = _sector_alignment_score(brief, expanded_tokens)
         score = float(sum(field_scores.values()))
         score += _title_phrase_boost(brief["title"], folded_query)
-        score += _phrase_match_score(folded_haystack, query_phrases)
-        score += _sector_alignment_score(brief, expanded_tokens)
+        score += phrase_score
+        score += sector_score
         block_id = _infer_block(brief["title"], brief["source_type"])
-        score += _block_score(block_id, broad_query, expanded_tokens)
-        score += _intent_score(query_intent, brief, block_id, folded_haystack)
+        block_score = _block_score(block_id, broad_query, expanded_tokens)
+        intent_score = _intent_score(query_intent, brief, block_id, folded_haystack)
+        score += block_score
+        score += intent_score
         brief["block"] = block_id
         brief["query_intent"] = query_intent
         brief["score"] = score
+        if explain:
+            brief["score_breakdown"] = {
+                "fields": field_scores,
+                "phrase": phrase_score,
+                "block": block_score,
+                "intent": intent_score,
+                "sector": sector_score,
+            }
+            brief["reasons"] = _build_rank_reasons(
+                query_intent=query_intent,
+                block_id=block_id,
+                field_scores=field_scores,
+                phrase_score=phrase_score,
+                block_score=block_score,
+                intent_score=intent_score,
+                sector_score=sector_score,
+            )
         ranked.append(brief)
     ranked.sort(key=lambda item: (item["score"], item["uploaded_at"]), reverse=True)
     return ranked[:limit]
@@ -654,6 +675,43 @@ def _infer_query_intent(query: str) -> str:
     if scores.get(best_intent, 0.0) <= 0:
         return "general"
     return best_intent
+
+
+def _build_rank_reasons(
+    *,
+    query_intent: str,
+    block_id: str,
+    field_scores: dict[str, float],
+    phrase_score: float,
+    block_score: float,
+    intent_score: float,
+    sector_score: float,
+) -> list[str]:
+    reasons: list[str] = []
+    if query_intent != "general":
+        reasons.append(f"Intencion detectada: {_intent_label(query_intent)}")
+    if block_score > 0:
+        reasons.append(f"Bloque alineado: {_block_label(block_id)}")
+    if sector_score > 0:
+        reasons.append("Match sectorial fuerte")
+    if phrase_score > 0:
+        reasons.append("Coincidencia con frase clave")
+    if intent_score >= 4:
+        reasons.append("Contenido muy alineado con la consulta")
+
+    top_fields = sorted(
+        ((field, score) for field, score in field_scores.items() if score > 0),
+        key=lambda item: item[1],
+        reverse=True,
+    )[:2]
+    for field, _score in top_fields:
+        reasons.append(f"Match en {_field_label(field)}")
+
+    deduped: list[str] = []
+    for reason in reasons:
+        if reason not in deduped:
+            deduped.append(reason)
+    return deduped[:5]
 
 
 def _intent_score(query_intent: str, brief: dict, block_id: str, folded_haystack: str) -> float:
@@ -899,3 +957,31 @@ def _block_label(block_id: str) -> str:
         "otros": "Otros",
     }
     return labels.get(block_id, block_id)
+
+
+def _intent_label(intent_id: str) -> str:
+    labels = {
+        "general": "general",
+        "diagnostico": "diagnostico",
+        "local_cloud": "local vs cloud",
+        "roi": "roi",
+        "roadmap": "roadmap",
+        "gobierno": "gobierno y riesgo",
+        "sector_salud": "sector salud",
+        "sector_legal": "sector legal",
+        "stack": "stack tecnico",
+    }
+    return labels.get(intent_id, intent_id)
+
+
+def _field_label(field_id: str) -> str:
+    labels = {
+        "title": "titulo",
+        "summary": "resumen",
+        "tags": "tags",
+        "business_relevance": "impacto negocio",
+        "technical_relevance": "impacto tecnico",
+        "risk_relevance": "riesgo y gobierno",
+        "compact_text": "texto compacto",
+    }
+    return labels.get(field_id, field_id)

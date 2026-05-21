@@ -105,3 +105,21 @@ def test_governance_style_query_prefers_governance_content(monkeypatch, tmp_path
     assert hits
     titles = [hit.metadata["title"] for hit in hits]
     assert "GOBIERNO MINIMO VIABLE DE IA — BASE" in titles
+
+
+def test_explain_mode_returns_reasons_and_breakdown(monkeypatch, tmp_path) -> None:
+    _init_temp_db(monkeypatch, tmp_path)
+    _seed_foundations()
+
+    briefs = updates.list_briefs(
+        query="local vs cloud datos sensibles",
+        limit=2,
+        explain=True,
+    )
+
+    assert briefs
+    assert briefs[0]["query_intent"] == "local_cloud"
+    assert briefs[0]["block"] in {"fundamentos", "dolores", "stack"}
+    assert briefs[0]["reasons"]
+    assert "score_breakdown" in briefs[0]
+    assert briefs[0]["score_breakdown"]["intent"] > 0

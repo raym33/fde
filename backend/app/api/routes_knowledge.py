@@ -134,8 +134,9 @@ async def list_knowledge_updates(
 async def list_knowledge_briefs(
     q: str | None = Query(default=None),
     limit: int = Query(default=10, ge=1, le=50),
+    explain: bool = Query(default=False),
 ) -> dict:
-    return {"briefs": updates.list_briefs(query=q, limit=limit)}
+    return {"briefs": updates.list_briefs(query=q, limit=limit, explain=explain)}
 
 
 @router.get("/blocks")

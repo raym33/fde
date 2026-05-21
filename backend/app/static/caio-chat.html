@@ -163,6 +163,17 @@
               <span>07</span>
               <h2>Explorador intel</h2>
             </div>
+            <form id="knowledgeSearchForm" class="knowledge-search-form">
+              <input
+                id="knowledgeSearchInput"
+                placeholder="Busca: local vs cloud, quick wins clínica, ROI correos..."
+              />
+              <button id="knowledgeSearchButton" type="submit">Buscar</button>
+            </form>
+            <div id="knowledgeSearchMeta" class="intel-block-meta">
+              Busca en la base curada y verás bloque, intención detectada y por qué salió arriba.
+            </div>
+            <div id="knowledgeSearchResults" class="intel-search-results" aria-live="polite"></div>
             <div id="intelBlockTabs" class="intel-block-tabs" aria-label="Bloques de inteligencia"></div>
             <div id="intelBlocksMeta" class="intel-block-meta">Cargando bloques curados...</div>
             <div id="intelExplorerCards" class="intel-cards" aria-live="polite"></div>

@@ -17,6 +17,11 @@ const knowledgeTitle = document.querySelector("#knowledgeTitle");
 const knowledgeSourceUrl = document.querySelector("#knowledgeSourceUrl");
 const knowledgeButton = document.querySelector("#knowledgeButton");
 const knowledgeResult = document.querySelector("#knowledgeResult");
+const knowledgeSearchForm = document.querySelector("#knowledgeSearchForm");
+const knowledgeSearchInput = document.querySelector("#knowledgeSearchInput");
+const knowledgeSearchButton = document.querySelector("#knowledgeSearchButton");
+const knowledgeSearchMeta = document.querySelector("#knowledgeSearchMeta");
+const knowledgeSearchResults = document.querySelector("#knowledgeSearchResults");
 const intelBlockTabs = document.querySelector("#intelBlockTabs");
 const intelBlocksMeta = document.querySelector("#intelBlocksMeta");
 const intelExplorerCards = document.querySelector("#intelExplorerCards");
@@ -29,6 +34,7 @@ const scannerResult = document.querySelector("#scannerResult");
 
 let knowledgeBlocks = [];
 let selectedIntelBlock = null;
+let lastKnowledgeQuery = "";
 
 const DEFAULT_SCANNER_ARTIFACTS = `Procedimiento facturas | procedure | ERP | 300/mes
 Administración recibe facturas de proveedores por email, descarga PDF, copia importe, IVA, NIF e IBAN en Excel y valida manualmente en ERP.
@@ -120,6 +126,34 @@ function buildBlockPrompt(blockId, brief) {
     otros: `analiza ${title} y extrae las mejores decisiones para VirtuDirector IA`,
   };
   return mapping[blockId] || mapping.otros;
+}
+
+function blockLabel(blockId) {
+  const mapping = {
+    fundamentos: "Fundamentos base",
+    intel: "Intel IA diaria",
+    dolores: "Dolores detectados",
+    roadmaps: "Roadmaps",
+    stack: "Stack y runtime",
+    sector_publico_salud: "Salud y sector publico",
+    otros: "Otros",
+  };
+  return mapping[blockId] || blockId || "Otros";
+}
+
+function intentLabel(intentId) {
+  const mapping = {
+    general: "General",
+    diagnostico: "Diagnostico",
+    local_cloud: "Local vs cloud",
+    roi: "ROI",
+    roadmap: "Roadmap",
+    gobierno: "Gobierno y riesgo",
+    sector_salud: "Sector salud",
+    sector_legal: "Sector legal",
+    stack: "Stack",
+  };
+  return mapping[intentId] || intentId || "General";
 }
 
 function parseScannerArtifacts(rawText) {
@@ -226,6 +260,73 @@ function renderIntelExplorer() {
       `;
     })
     .join("");
+}
+
+function renderKnowledgeSearchResults(briefs, query) {
+  if (!knowledgeSearchMeta || !knowledgeSearchResults) return;
+  if (!query.trim()) {
+    knowledgeSearchMeta.textContent = "Busca en la base curada y verás bloque, intención detectada y por qué salió arriba.";
+    knowledgeSearchResults.innerHTML = "";
+    return;
+  }
+
+  if (!briefs.length) {
+    knowledgeSearchMeta.textContent = `Sin resultados para “${query}”. Prueba con local vs cloud, quick wins clínica, despacho o ROI.`;
+    knowledgeSearchResults.innerHTML = "";
+    return;
+  }
+
+  const firstIntent = briefs[0].query_intent || "general";
+  knowledgeSearchMeta.textContent = `${briefs.length} resultados para “${query}”. Intención detectada: ${intentLabel(firstIntent)}.`;
+  knowledgeSearchResults.innerHTML = briefs
+    .map((brief) => {
+      const tags = Array.isArray(brief.tags) ? brief.tags.slice(0, 4) : [];
+      const reasons = Array.isArray(brief.reasons) ? brief.reasons.slice(0, 4) : [];
+      const prompt = escapeHtml(buildBlockPrompt(brief.block, brief));
+      return `
+        <article class="intel-card intel-search-card">
+          <div class="intel-card-header">
+            <strong>${escapeHtml(brief.title)}</strong>
+            <span class="intel-card-meta">${escapeHtml(blockLabel(brief.block))} · intención ${escapeHtml(intentLabel(brief.query_intent))}</span>
+          </div>
+          <p>${escapeHtml((brief.summary || "").slice(0, 260))}</p>
+          <div class="intel-tags">
+            ${tags.map((tag) => `<span class="intel-tag">${escapeHtml(tag)}</span>`).join("")}
+            <span class="intel-tag intel-tag-strong">score ${escapeHtml((brief.score || 0).toFixed(1))}</span>
+          </div>
+          <div class="intel-reasons">
+            ${reasons.map((reason) => `<span class="intel-reason">${escapeHtml(reason)}</span>`).join("")}
+          </div>
+          <div class="intel-card-actions">
+            <button type="button" data-prompt="${prompt}">Usar en chat</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function searchKnowledge(query) {
+  if (!knowledgeSearchMeta || !knowledgeSearchResults) return;
+  const trimmed = query.trim();
+  lastKnowledgeQuery = trimmed;
+  if (!trimmed) {
+    renderKnowledgeSearchResults([], "");
+    return;
+  }
+
+  knowledgeSearchButton.disabled = true;
+  knowledgeSearchMeta.textContent = `Buscando “${trimmed}”...`;
+  try {
+    const response = await fetch(`/knowledge/briefs?q=${encodeURIComponent(trimmed)}&limit=6&explain=true`);
+    const payload = await response.json();
+    renderKnowledgeSearchResults(payload.briefs || [], trimmed);
+  } catch (error) {
+    knowledgeSearchMeta.textContent = `No disponible: ${error.message}`;
+    knowledgeSearchResults.innerHTML = "";
+  } finally {
+    knowledgeSearchButton.disabled = false;
+  }
 }
 
 async function loadKnowledgeBlocks() {
@@ -361,6 +462,7 @@ async function loadToolsStatus() {
 
 loadToolsStatus();
 loadKnowledgeBlocks();
+renderKnowledgeSearchResults([], "");
 
 if (scannerArtifacts && !scannerArtifacts.value.trim()) {
   scannerArtifacts.value = DEFAULT_SCANNER_ARTIFACTS;
@@ -433,12 +535,18 @@ knowledgeForm.addEventListener("submit", async (event) => {
     `;
     loadToolsStatus();
     loadKnowledgeBlocks();
+    if (lastKnowledgeQuery) searchKnowledge(lastKnowledgeQuery);
   } catch (error) {
     knowledgeResult.textContent = `Error: ${error.message}`;
   } finally {
     knowledgeButton.disabled = false;
     knowledgeFile.value = "";
   }
+});
+
+knowledgeSearchForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await searchKnowledge(knowledgeSearchInput.value);
 });
 
 processScannerForm?.addEventListener("submit", async (event) => {
