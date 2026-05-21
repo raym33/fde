@@ -15,6 +15,7 @@ mínimo) hasta tener evals reales; se indica así en las notas.
 from __future__ import annotations
 
 from app.labs.base import BaseLab, weighted_score
+from app.labs.registry import register_lab
 from app.labs.schemas import CoreReportDraft, LabRunResult
 
 # € por 1M tokens (blended in+out). Ajustar a precios reales del proveedor.
@@ -90,6 +91,7 @@ def _score(m: dict) -> float:
     )
 
 
+@register_lab("model_routing_cost")
 class ModelRoutingCostLab(BaseLab):
     def run(self) -> LabRunResult:
         baseline = _evaluate_policy(4)

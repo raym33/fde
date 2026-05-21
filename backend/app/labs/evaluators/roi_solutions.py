@@ -17,6 +17,7 @@ from app.core.solutions import catalog
 from app.core.solutions.engine import propose
 from app.core.solutions.schema import BudgetTier, SolutionOption, budget_rank
 from app.labs.base import BaseLab, run_coro, weighted_score
+from app.labs.registry import register_lab
 from app.labs.schemas import CoreReportDraft, LabRunResult
 
 TENANT = "__lab_roi_solutions__"
@@ -182,6 +183,7 @@ def _score(m: dict) -> float:
     )
 
 
+@register_lab("roi_solutions")
 class RoiSolutionsLab(BaseLab):
     def run(self) -> LabRunResult:
         baseline = _evaluate_baseline()

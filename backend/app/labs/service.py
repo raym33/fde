@@ -1,4 +1,5 @@
 from dataclasses import asdict
+import traceback
 from typing import Optional
 from uuid import uuid4
 
@@ -145,9 +146,6 @@ class LabsService:
         run_id = str(uuid4())
         now = utc_now()
         lab = make_lab(lab_id)
-        result = lab.run()
-        status = "report_proposed" if result.produces_report else "no_material_improvement"
-
         with db() as conn:
             conn.execute(
                 """
@@ -156,6 +154,22 @@ class LabsService:
                 """,
                 (experiment_id, lab_id, triggered_by, now, dumps({"source": "manual_or_api"})),
             )
+
+        try:
+            result = lab.run()
+            self._validate_result(lab_id, result)
+        except Exception as exc:
+            return self._record_failed_run(
+                run_id=run_id,
+                experiment_id=experiment_id,
+                lab_id=lab_id,
+                started_at=now,
+                exc=exc,
+            ), None
+
+        status = "report_proposed" if result.produces_report else "no_material_improvement"
+
+        with db() as conn:
             conn.execute(
                 """
                 INSERT INTO lab_runs (
@@ -197,6 +211,7 @@ class LabsService:
             return run_payload, None
 
         draft = lab.build_report(result)
+        self._validate_draft(lab_id, draft)
         report_id = str(uuid4())
         with db() as conn:
             conn.execute(
@@ -225,6 +240,93 @@ class LabsService:
             )
             row = conn.execute("SELECT * FROM core_reports WHERE id = ?", (report_id,)).fetchone()
         return run_payload, self._row_to_report(row)
+
+    def _record_failed_run(
+        self,
+        run_id: str,
+        experiment_id: str,
+        lab_id: str,
+        started_at: str,
+        exc: Exception,
+    ) -> dict:
+        error_payload = {
+            "error_type": exc.__class__.__name__,
+            "error": str(exc),
+            "traceback": traceback.format_exc(limit=8),
+        }
+        notes = f"Lab failed: {exc.__class__.__name__}: {exc}"
+        with db() as conn:
+            conn.execute(
+                """
+                INSERT INTO lab_runs (
+                    id, experiment_id, lab_id, status, started_at, finished_at,
+                    baseline_score, new_score, improvement_pct, threshold_pct, metrics_json, notes
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    experiment_id,
+                    lab_id,
+                    "failed",
+                    started_at,
+                    utc_now(),
+                    0.0,
+                    0.0,
+                    0.0,
+                    LABS_BY_ID[lab_id].threshold_pct,
+                    dumps(error_payload),
+                    notes,
+                ),
+            )
+        return {
+            "id": run_id,
+            "experiment_id": experiment_id,
+            "lab_id": lab_id,
+            "status": "failed",
+            "baseline_score": 0.0,
+            "new_score": 0.0,
+            "improvement_pct": 0.0,
+            "threshold_pct": LABS_BY_ID[lab_id].threshold_pct,
+            "metrics": error_payload,
+            "notes": notes,
+        }
+
+    def _validate_result(self, lab_id: str, result) -> None:
+        if result.lab_id != lab_id:
+            raise ValueError(f"Lab returned lab_id={result.lab_id!r}, expected {lab_id!r}")
+        for field in ("baseline_score", "new_score"):
+            score = getattr(result, field)
+            if not isinstance(score, (int, float)) or not 0 <= score <= 100:
+                raise ValueError(f"{field} must be a numeric score between 0 and 100")
+        if result.threshold_pct < 0:
+            raise ValueError("threshold_pct must be non-negative")
+        if not isinstance(result.metrics, dict) or not result.metrics:
+            raise ValueError("metrics must be a non-empty dict")
+        if "baseline" not in result.metrics or "candidate" not in result.metrics:
+            raise ValueError("metrics must include baseline and candidate sections")
+
+    def _validate_draft(self, lab_id: str, draft) -> None:
+        if draft.lab_id != lab_id:
+            raise ValueError(f"Report draft lab_id={draft.lab_id!r}, expected {lab_id!r}")
+        required_text = {
+            "title": draft.title,
+            "summary": draft.summary,
+            "recommendation": draft.recommendation,
+            "rollout_plan": draft.rollout_plan,
+            "rollback_plan": draft.rollback_plan,
+        }
+        empty = [name for name, value in required_text.items() if not value.strip()]
+        if empty:
+            raise ValueError(f"Report draft has empty fields: {', '.join(empty)}")
+        if draft.risk_level not in {"low", "medium", "high"}:
+            raise ValueError("risk_level must be one of: low, medium, high")
+        if draft.status != "proposed":
+            raise ValueError("new report drafts must start with status='proposed'")
+        if not draft.evidence:
+            raise ValueError("report evidence must not be empty")
+        if not isinstance(draft.metrics, dict) or not draft.metrics:
+            raise ValueError("report metrics must be a non-empty dict")
 
     def _row_to_report(self, row) -> dict:
         return {

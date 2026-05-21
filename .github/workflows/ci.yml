@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -23,6 +26,12 @@ jobs:
 
       - name: Compile Python sources
         run: make compile
+
+      - name: Run labs quality gate
+        run: make labs-quality VENV_PYTHON=python
+
+      - name: Run pytest
+        run: make test VENV_PYTHON=python
 
       - name: Run labs smoke test
         run: make smoke VENV_PYTHON=python

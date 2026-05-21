@@ -2,7 +2,7 @@ PYTHON ?= python3
 VENV_PYTHON ?= backend/.venv/bin/python
 PIP ?= backend/.venv/bin/pip
 
-.PHONY: help venv install run run-lan smoke smoke-http compile recompact-intel
+.PHONY: help venv install run run-lan smoke smoke-http compile test labs-quality recompact-intel
 
 help:
 	@echo "Targets disponibles:"
@@ -13,6 +13,8 @@ help:
 	@echo "  make smoke           - ejecuta smoke_labs.py"
 	@echo "  make smoke-http      - ejecuta smoke_tests.py contra un backend en marcha"
 	@echo "  make compile         - compila backend/app y scripts"
+	@echo "  make test            - ejecuta pytest"
+	@echo "  make labs-quality    - valida determinismo y reports de labs"
 	@echo "  make recompact-intel - recompone briefs ya ingeridos"
 
 venv:
@@ -35,6 +37,12 @@ smoke-http:
 
 compile:
 	$(PYTHON) -m compileall backend/app scripts
+
+test:
+	$(VENV_PYTHON) -m pytest tests
+
+labs-quality:
+	$(VENV_PYTHON) scripts/labs_quality_gate.py
 
 recompact-intel:
 	$(VENV_PYTHON) scripts/recompact_knowledge_briefs.py

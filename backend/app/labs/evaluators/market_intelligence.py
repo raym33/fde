@@ -18,6 +18,7 @@ from datetime import date
 from app.ingest.document_parser import ExtractedDocument
 from app.knowledge.updates import compact_document
 from app.labs.base import BaseLab, weighted_score
+from app.labs.registry import register_lab
 from app.labs.schemas import CoreReportDraft, LabRunResult
 
 TODAY = date(2026, 5, 20)
@@ -192,6 +193,7 @@ def _score(m: dict) -> float:
     )
 
 
+@register_lab("market_intelligence")
 class MarketIntelligenceLab(BaseLab):
     def run(self) -> LabRunResult:
         baseline = _baseline()

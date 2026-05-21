@@ -14,6 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.labs.base import BaseLab, weighted_score
+from app.labs.registry import register_lab
 from app.labs.schemas import CoreReportDraft, LabRunResult
 
 
@@ -130,6 +131,7 @@ def _score(m: dict) -> float:
     )
 
 
+@register_lab("agent_workflow")
 class AgentWorkflowLab(BaseLab):
     def run(self) -> LabRunResult:
         baseline = _evaluate(BASELINE)

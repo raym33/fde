@@ -55,6 +55,8 @@ called out explicitly below.
 make venv
 make install
 make smoke
+make labs-quality
+make test
 make run
 ```
 
@@ -122,6 +124,40 @@ Reports proposed: N
 - model_routing_cost: ...
 OK
 ```
+
+## Labs Quality Gate
+
+For day-to-day lab development, use:
+
+```bash
+make labs-quality
+make test
+```
+
+`make labs-quality` validates the lab layer without mutating the database:
+
+- every catalog lab is registered;
+- every lab is deterministic across two consecutive runs;
+- each result has bounded scores and baseline/candidate metrics;
+- every material improvement builds a valid human-reviewable Core Report draft.
+
+`make test` runs pytest coverage for:
+
+- the quality gate,
+- run/report persistence,
+- report approval -> staged change -> implementation,
+- failed lab isolation so one broken evaluator does not kill the whole batch.
+
+### Adding a New Lab
+
+1. Add a `LabDefinition` in [catalog.py](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/backend/app/labs/catalog.py).
+2. Create an evaluator under `backend/app/labs/evaluators/`.
+3. Implement `BaseLab.run()` and `BaseLab.build_report()`.
+4. Decorate the class with `@register_lab("your_lab_id")`.
+5. Run `make labs-quality && make test && make smoke`.
+
+The registry is intentionally pluggable: adding a lab should not require editing
+central routing code beyond the catalog definition and module list.
 
 ## Run the API
 

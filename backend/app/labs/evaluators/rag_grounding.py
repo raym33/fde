@@ -19,6 +19,7 @@ delta se reducirá automáticamente: el resultado reacciona al sistema real.
 from __future__ import annotations
 
 from app.labs.base import BaseLab, run_coro, weighted_score
+from app.labs.registry import register_lab
 from app.labs.schemas import CoreReportDraft, LabRunResult
 from app.rag import retriever as R
 from app.rag.embeddings import embed_texts
@@ -127,6 +128,7 @@ def _score(m: dict, leakage: float) -> float:
     )
 
 
+@register_lab("rag_grounding")
 class RagGroundingLab(BaseLab):
     def run(self) -> LabRunResult:
         store = _build_store()
