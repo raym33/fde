@@ -24,6 +24,77 @@ backend/app/
 └── tools/        web search, LM Studio, and premium CLI integrations
 ```
 
+## System diagram
+
+```mermaid
+flowchart TD
+    User["SME / Consultant / Technical operator"]
+    UI["/app static workspace"]
+    API["FastAPI routes"]
+    Auth["Tenant principal resolution"]
+    Docs["Tenant documents"]
+    Knowledge["Curated knowledge briefs"]
+    RAG["Tenant-scoped RAG"]
+    Diagnosis["Opportunity diagnosis"]
+    Proposal["Executive proposal"]
+    Bundle["Implementation bundle"]
+    Pilot["Pilot project pipeline"]
+    Policy["Tenant runtime policy"]
+    Sensitivity["Sensitivity classifier"]
+    Router["Model router"]
+    Local["LM Studio / local model"]
+    Premium["Optional customer-owned premium API or CLI"]
+    Labs["FDE Labs"]
+    Reports["Core reports and staged changes"]
+
+    User --> UI
+    UI --> API
+    API --> Auth
+    API --> Docs
+    API --> Knowledge
+    Docs --> RAG
+    Knowledge --> Diagnosis
+    RAG --> Diagnosis
+    Diagnosis --> Proposal
+    Diagnosis --> Bundle
+    Proposal --> Pilot
+    Bundle --> Pilot
+    API --> Policy
+    API --> Sensitivity
+    Policy --> Router
+    Sensitivity --> Router
+    Router --> Local
+    Router --> Premium
+    Diagnosis --> Labs
+    RAG --> Labs
+    Router --> Labs
+    Labs --> Reports
+```
+
+## Product flow
+
+```mermaid
+flowchart LR
+    Intake["SME intake"]
+    Diagnose["AI opportunity diagnosis"]
+    Proposal["Executive proposal"]
+    Bundle["Implementation bundle"]
+    Pilot["Tracked pilot"]
+    Measure["Pilot measurement"]
+    Governance["Runtime and governance policy"]
+    Labs["Labs evaluation"]
+
+    Intake --> Diagnose
+    Diagnose --> Proposal
+    Diagnose --> Bundle
+    Proposal --> Pilot
+    Bundle --> Pilot
+    Pilot --> Measure
+    Governance --> Pilot
+    Measure --> Labs
+    Labs --> Governance
+```
+
 ## Request flow
 
 ### Chat and opportunity workflows

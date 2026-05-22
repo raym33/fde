@@ -16,6 +16,26 @@ This repository is not a generic chatbot template. It is an operational product 
 
 License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
 
+## 60-second demo
+
+1. Describe an SME, department, or process.
+2. Run AI opportunity diagnosis.
+3. Generate an executive proposal for management.
+4. Generate an implementation bundle for the selected pilot.
+5. Create a tracked pilot with tasks, status, risks, and success metrics.
+6. Route work through local or optional premium models according to tenant policy.
+7. Validate system improvements in FDE Labs before promotion.
+
+For a complete text-only demo script, see [docs/DEMO_WALKTHROUGH.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/DEMO_WALKTHROUGH.md).
+
+## Who this is for
+
+- AI consultants delivering practical SME implementations.
+- Forward-deployed engineers building local-first AI systems.
+- SME digital transformation teams that need a structured AI adoption workflow.
+- Local AI implementers working with sensitive documents.
+- Legal, healthcare, real estate, accounting, public-sector, and office automation prototypes.
+
 ## Repository purpose
 
 The repository solves six practical problems:
@@ -714,6 +734,10 @@ Additional repository documentation:
 - [docs/OPERATIONS.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/OPERATIONS.md)
 - [docs/DEVELOPMENT.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/DEVELOPMENT.md)
 - [docs/ROADMAP.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/ROADMAP.md)
+- [docs/DEMO_WALKTHROUGH.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/DEMO_WALKTHROUGH.md)
+- [docs/EXAMPLE_SME_DIAGNOSIS.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/EXAMPLE_SME_DIAGNOSIS.md)
+- [docs/EXAMPLE_EXECUTIVE_PROPOSAL.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/EXAMPLE_EXECUTIVE_PROPOSAL.md)
+- [docs/SECURITY_HARDENING.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/SECURITY_HARDENING.md)
 - [docs/IMPLEMENTATION_ENGINE_EXTENSION.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/IMPLEMENTATION_ENGINE_EXTENSION.md)
 
 ## Scope note
