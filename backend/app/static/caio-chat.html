@@ -44,39 +44,76 @@
           <section class="rail-section" aria-label="Trabajos habituales">
             <div class="section-heading">
               <span>02</span>
-              <h2>Trabajos</h2>
+              <h2>Diagnóstico rápido</h2>
             </div>
-            <div class="prompt-list">
-              <button data-prompt="dónde debería implementar IA primero en una pyme de 500 empleados">
-                Diagnóstico de oportunidades
-              </button>
-              <button data-prompt="hazme un roadmap de IA de 90 días para una pyme de 500 empleados">
-                Roadmap 90 días
-              </button>
-              <button data-prompt="recomiéndame un chatbot barato para una pyme en España">
-                Solución low-cost
-              </button>
-              <button data-prompt="qué riesgos de EU AI Act debería revisar primero">
-                Riesgo y gobierno
-              </button>
-            </div>
+            <form id="quickIntakeForm" class="scanner-form quick-intake-form">
+              <label>
+                Sector
+                <select id="quickSector">
+                  <option value="general">Pyme general</option>
+                  <option value="clinic">Clínica</option>
+                  <option value="legal">Despacho / asesoría</option>
+                  <option value="real-estate">Inmobiliaria</option>
+                  <option value="industrial">Industria</option>
+                  <option value="public">Ayuntamiento / sector público</option>
+                </select>
+              </label>
+              <label>
+                Tamaño
+                <select id="quickEmployeeBand">
+                  <option value="10">1-10 empleados</option>
+                  <option value="25">11-25 empleados</option>
+                  <option value="75">26-100 empleados</option>
+                  <option value="250" selected>101-500 empleados</option>
+                  <option value="750">500+ empleados</option>
+                </select>
+              </label>
+              <label>
+                Dolor principal
+                <select id="quickPain">
+                  <option value="support">Demasiado tiempo en soporte y emails</option>
+                  <option value="invoices">Facturas y administración manual</option>
+                  <option value="documents">Buscar documentos y procedimientos</option>
+                  <option value="sales">Ventas sin foco ni priorización</option>
+                  <option value="governance">No saber por dónde empezar con IA</option>
+                </select>
+              </label>
+              <label>
+                Sensibilidad de datos
+                <select id="quickSensitivity">
+                  <option value="low">Baja</option>
+                  <option value="medium" selected>Media</option>
+                  <option value="high">Alta</option>
+                </select>
+              </label>
+              <label>
+                Objetivo
+                <select id="quickGoal">
+                  <option value="quickwins">Quick wins en 30 días</option>
+                  <option value="savings">Ahorrar horas y costes</option>
+                  <option value="private">Mantener datos dentro de la empresa</option>
+                  <option value="roadmap">Tener roadmap de 90 días</option>
+                </select>
+              </label>
+              <button id="quickIntakeButton" type="submit">Ver recomendación inicial</button>
+            </form>
           </section>
 
           <section class="rail-section opportunity-panel" aria-label="Opportunity workbench">
             <div class="section-heading">
               <span>03</span>
-              <h2>Opportunity workbench</h2>
+              <h2>Diagnóstico detallado</h2>
             </div>
             <form id="opportunityForm" class="scanner-form">
               <label>
-                Question
+                Describe la empresa o el proceso
                 <textarea id="opportunityQuestion" rows="5">Where should we implement AI first in a 500-employee SME with repetitive support, invoices, and internal document search?</textarea>
               </label>
               <label>
-                Employee count
+                Empleados
                 <input id="opportunityEmployeeCount" type="number" min="1" value="500" />
               </label>
-              <button id="opportunityButton" type="submit">Diagnose opportunities</button>
+              <button id="opportunityButton" type="submit">Generar oportunidades</button>
             </form>
             <div id="opportunityResult" class="scanner-result"></div>
           </section>
@@ -87,35 +124,38 @@
               <h2>Runtime</h2>
             </div>
             <div id="toolsStatus" class="tools-status">Comprobando...</div>
-            <form id="runtimePolicyForm" class="runtime-policy-form">
-              <label>
-                Premium provider
-                <select id="runtimePremiumProvider">
-                  <option value="lmstudio">LM Studio</option>
-                  <option value="claude_cli">Claude CLI</option>
-                  <option value="codex_cli">Codex CLI</option>
-                  <option value="anthropic_api">Anthropic API</option>
-                  <option value="openai_api">OpenAI API</option>
-                </select>
-              </label>
-              <label class="checkbox-row">
-                <input id="runtimeEscalationEnabled" type="checkbox" />
-                <span>Enable escalation</span>
-              </label>
-              <label class="checkbox-row">
-                <input id="runtimeAllowSensitive" type="checkbox" />
-                <span>Allow sensitive content to escalate</span>
-              </label>
-              <label>
-                Allowed intents
-                <input
-                  id="runtimeAllowedIntents"
-                  value="strategy,grc,solution,opportunity,deliverable"
-                />
-              </label>
-              <button id="runtimePolicyButton" type="submit">Save runtime policy</button>
-            </form>
-            <div id="runtimePolicyResult" class="tools-status"></div>
+            <details class="advanced-panel">
+              <summary>Ajustes avanzados</summary>
+              <form id="runtimePolicyForm" class="runtime-policy-form">
+                <label>
+                  Premium provider
+                  <select id="runtimePremiumProvider">
+                    <option value="lmstudio">LM Studio</option>
+                    <option value="claude_cli">Claude CLI</option>
+                    <option value="codex_cli">Codex CLI</option>
+                    <option value="anthropic_api">Anthropic API</option>
+                    <option value="openai_api">OpenAI API</option>
+                  </select>
+                </label>
+                <label class="checkbox-row">
+                  <input id="runtimeEscalationEnabled" type="checkbox" />
+                  <span>Enable escalation</span>
+                </label>
+                <label class="checkbox-row">
+                  <input id="runtimeAllowSensitive" type="checkbox" />
+                  <span>Allow sensitive content to escalate</span>
+                </label>
+                <label>
+                  Allowed intents
+                  <input
+                    id="runtimeAllowedIntents"
+                    value="strategy,grc,solution,opportunity,deliverable"
+                  />
+                </label>
+                <button id="runtimePolicyButton" type="submit">Save runtime policy</button>
+              </form>
+              <div id="runtimePolicyResult" class="tools-status"></div>
+            </details>
           </section>
 
           <section class="rail-section process-scanner-panel" aria-label="Escáner de procesos">
@@ -149,21 +189,36 @@
         <section class="director-panel" aria-label="Director de IA">
           <header class="work-header">
             <div>
-              <p class="eyebrow">CAIO Chat Workbench</p>
-              <h1>Decidir dónde aplicar IA, con ROI y control de riesgo</h1>
+              <p class="eyebrow">VirtuDirector IA</p>
+              <h1>Descubre dónde aplicar IA con ROI, privacidad y foco real</h1>
             </div>
             <p id="runtimeMode">Comprobando modelos locales y herramientas...</p>
           </header>
+
+          <section id="salesSummary" class="sales-summary">
+            <article class="sales-card sales-card-hero">
+              <strong>Qué te llevas</strong>
+              <p>Una recomendación inicial, quick wins con ROI, modo local o híbrido sugerido y un primer piloto medible.</p>
+            </article>
+            <article class="sales-card">
+              <strong>Tiempo a valor</strong>
+              <p>Normalmente 2-6 semanas para un primer caso útil.</p>
+            </article>
+            <article class="sales-card">
+              <strong>Privacidad</strong>
+              <p>Local-first: si hace falta, los datos se quedan dentro de la empresa.</p>
+            </article>
+          </section>
 
           <div id="messages" class="messages" aria-live="polite">
             <article class="message assistant">
               <div class="avatar">VD</div>
               <div class="bubble">
-                <strong>Listo para priorizar oportunidades de IA.</strong>
+                <strong>Listo para convertir problemas reales en un plan de IA comprable.</strong>
                 <p>
-                  Empieza por un diagnóstico de procesos, una solución concreta,
-                  un roadmap o una revisión GRC. El sistema usará RAG del cliente,
-                  inteligencia curada y scoring determinista cuando haya que priorizar.
+                  Empieza por el diagnóstico rápido si eres una pyme que no sabe por dónde empezar.
+                  En pocos minutos tendrás una prioridad clara, el tipo de despliegue recomendado
+                  y un primer piloto con valor de negocio.
                 </p>
               </div>
             </article>

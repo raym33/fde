@@ -6,6 +6,12 @@ const statePill = document.querySelector("#connectionState");
 const tenantId = document.querySelector("#tenantId");
 const clientName = document.querySelector("#clientName");
 const toolsStatus = document.querySelector("#toolsStatus");
+const quickIntakeForm = document.querySelector("#quickIntakeForm");
+const quickSector = document.querySelector("#quickSector");
+const quickEmployeeBand = document.querySelector("#quickEmployeeBand");
+const quickPain = document.querySelector("#quickPain");
+const quickSensitivity = document.querySelector("#quickSensitivity");
+const quickGoal = document.querySelector("#quickGoal");
 const opportunityForm = document.querySelector("#opportunityForm");
 const opportunityQuestion = document.querySelector("#opportunityQuestion");
 const opportunityEmployeeCount = document.querySelector("#opportunityEmployeeCount");
@@ -16,6 +22,7 @@ const documentFile = document.querySelector("#documentFile");
 const uploadButton = document.querySelector("#uploadButton");
 const uploadResult = document.querySelector("#uploadResult");
 const runtimeMode = document.querySelector("#runtimeMode");
+const salesSummary = document.querySelector("#salesSummary");
 const runtimePolicyForm = document.querySelector("#runtimePolicyForm");
 const runtimePremiumProvider = document.querySelector("#runtimePremiumProvider");
 const runtimeEscalationEnabled = document.querySelector("#runtimeEscalationEnabled");
@@ -233,6 +240,128 @@ function eurosRange(range) {
   return `${Number(range[0]).toLocaleString("en-IE")} - ${Number(range[1]).toLocaleString("en-IE")} EUR`;
 }
 
+function eurosValue(value) {
+  return `${Number(value).toLocaleString("en-IE")} EUR`;
+}
+
+function rangeMidpoint(range) {
+  if (!Array.isArray(range) || range.length !== 2) return 0;
+  return Math.round((Number(range[0]) + Number(range[1])) / 2);
+}
+
+function rangeSum(ranges) {
+  return ranges.reduce(
+    (acc, range) => [
+      acc[0] + Number(Array.isArray(range) ? range[0] || 0 : 0),
+      acc[1] + Number(Array.isArray(range) ? range[1] || 0 : 0),
+    ],
+    [0, 0]
+  );
+}
+
+function deploymentRecommendation() {
+  const sensitivity = quickSensitivity?.value || "medium";
+  const sector = quickSector?.value || "general";
+  if (sensitivity === "high" || sector === "clinic" || sector === "legal" || sector === "public") {
+    return "Local-first con opción híbrida controlada";
+  }
+  if (sensitivity === "medium") {
+    return "Híbrido con local para datos internos";
+  }
+  return "Cloud o híbrido según coste y velocidad";
+}
+
+function opportunityLabels(ids, diagnosis) {
+  const items = diagnosis?.top_opportunities || [];
+  return (ids || [])
+    .map((id) => items.find((item) => item.id === id)?.title || id)
+    .slice(0, 3);
+}
+
+function pilotWindow(opportunity) {
+  if (!opportunity) return "2-4 semanas";
+  if ((opportunity.score?.effort || 0) <= 2) return "2-4 semanas";
+  if ((opportunity.score?.effort || 0) === 3) return "4-6 semanas";
+  return "6-10 semanas";
+}
+
+function buildQuestionFromQuickIntake() {
+  const sectorMap = {
+    general: "a Spanish SME",
+    clinic: "a clinic",
+    legal: "a legal or advisory practice",
+    "real-estate": "a real estate business",
+    industrial: "an industrial SME",
+    public: "a Spanish local public-sector organisation",
+  };
+  const painMap = {
+    support: "repetitive support requests and many recurring emails",
+    invoices: "manual invoice processing and administrative bottlenecks",
+    documents: "too much time spent searching internal documents and procedures",
+    sales: "sales effort wasted on low-priority leads and follow-up",
+    governance: "no clear AI roadmap and too many disconnected experiments",
+  };
+  const goalMap = {
+    quickwins: "deliver quick wins in the first 30 days",
+    savings: "save hours and reduce operating cost quickly",
+    private: "keep sensitive data inside the company whenever possible",
+    roadmap: "produce a realistic 90-day roadmap with clear priorities",
+  };
+  const sensitivityMap = {
+    low: "low-sensitivity business data",
+    medium: "internal business data with moderate sensitivity",
+    high: "highly sensitive or regulated data",
+  };
+
+  return `Where should we implement AI first in ${sectorMap[quickSector.value] || "an SME"} with ${painMap[quickPain.value] || "manual internal processes"}, where the goal is to ${goalMap[quickGoal.value] || "deliver practical ROI"} and the company handles ${sensitivityMap[quickSensitivity.value] || "internal data"}?`;
+}
+
+function renderSalesSummaryFromDiagnosis(diagnosis, opportunities) {
+  if (!salesSummary) return;
+  const top = opportunities[0];
+  const totalBenefit = rangeSum(opportunities.map((item) => item.annual_benefit_eur));
+  const firstPilot = pilotWindow(top);
+  const setupMidpoint = rangeMidpoint(top?.setup_cost_eur);
+  const monthlyMidpoint = rangeMidpoint(top?.monthly_cost_eur);
+  const quickWinCount = (diagnosis.quick_wins || []).length;
+  const strategicCount = (diagnosis.strategic_bets || []).length;
+  const commercialCopy = top
+    ? `${clientName.value || "La empresa"} debería empezar por ${top.title.toLowerCase()} porque combina valor claro, esfuerzo razonable y un primer experimento medible. El primer piloto puede lanzarse en ${firstPilot} con un enfoque ${deploymentRecommendation().toLowerCase()}.`
+    : "VirtuDirector IA prioriza oportunidades con ahorro medible, riesgo controlado y un primer piloto claro.";
+
+  salesSummary.innerHTML = `
+    <article class="sales-card sales-card-hero">
+      <strong>Recomendación inicial</strong>
+      <p>${escapeHtml(top?.title || "Diagnóstico en curso")}</p>
+      <div class="executive-grid">
+        <div class="executive-metric">
+          <span>Beneficio anual potencial</span>
+          <strong>${escapeHtml(eurosRange(totalBenefit))}</strong>
+        </div>
+        <div class="executive-metric">
+          <span>Primer piloto</span>
+          <strong>${escapeHtml(firstPilot)}</strong>
+        </div>
+      </div>
+    </article>
+    <article class="sales-card">
+      <strong>Modo recomendado</strong>
+      <p>${escapeHtml(deploymentRecommendation())}</p>
+      <p>Setup inicial estimado: ${escapeHtml(eurosValue(setupMidpoint || 0))}</p>
+      <p>Coste mensual estimado: ${escapeHtml(eurosValue(monthlyMidpoint || 0))}</p>
+    </article>
+    <article class="sales-card">
+      <strong>Prioridad comercial</strong>
+      <p>${quickWinCount} quick wins y ${strategicCount} apuestas estratégicas detectadas.</p>
+      <p>${escapeHtml(opportunityLabels(diagnosis.quick_wins, diagnosis).join(" · ") || "Quick wins pendientes de concretar.")}</p>
+      <div class="sales-copy">
+        <strong>Cómo venderlo</strong>
+        <p>${escapeHtml(commercialCopy)}</p>
+      </div>
+    </article>
+  `;
+}
+
 function renderOpportunityResult(payload) {
   const diagnosis = payload?.diagnosis;
   if (!diagnosis) {
@@ -241,11 +370,14 @@ function renderOpportunityResult(payload) {
   }
   lastOpportunityDiagnosis = diagnosis;
   const opportunities = (diagnosis.top_opportunities || []).slice(0, 3);
+  renderSalesSummaryFromDiagnosis(diagnosis, opportunities);
   opportunityResult.innerHTML = `
-    <div class="scanner-summary">
-      <strong>${escapeHtml(diagnosis.company_size)}</strong>
-      <p>Question: ${escapeHtml(diagnosis.question)}</p>
-      <p>Quick wins: ${escapeHtml((diagnosis.quick_wins || []).join(", ") || "none")}</p>
+    <div class="scanner-summary executive">
+      <strong>Resumen ejecutivo</strong>
+      <p>Empresa: ${escapeHtml(clientName.value || "Cliente")}</p>
+      <p>Tamaño estimado: ${escapeHtml(diagnosis.company_size)}</p>
+      <p>Quick wins: ${escapeHtml(opportunityLabels(diagnosis.quick_wins, diagnosis).join(", ") || "ninguno detectado todavía")}</p>
+      <p>Despliegue sugerido: ${escapeHtml(deploymentRecommendation())}</p>
     </div>
     ${opportunities
       .map(
@@ -259,13 +391,13 @@ function renderOpportunityResult(payload) {
             <div class="scanner-pill-row">
               <span class="scanner-pill">${escapeHtml(item.area)}</span>
               <span class="scanner-pill">${escapeHtml(item.recommended_phase)}</span>
-              <span class="scanner-pill">risk ${escapeHtml(item.score.risk)}</span>
+              <span class="scanner-pill">riesgo ${escapeHtml(item.score.risk)}</span>
             </div>
-            <p>Annual benefit: ${escapeHtml(eurosRange(item.annual_benefit_eur))}</p>
-            <p>First experiment: ${escapeHtml(item.first_experiment)}</p>
+            <p>Beneficio anual estimado: ${escapeHtml(eurosRange(item.annual_benefit_eur))}</p>
+            <p>Primer experimento: ${escapeHtml(item.first_experiment)}</p>
             <div class="scanner-actions">
-              <button type="button" data-prompt="${escapeHtml(`Create a 90-day implementation roadmap for ${item.title} with ROI, risks, and owners for ${clientName.value || "the client"}`)}">Use in chat</button>
-              <button type="button" data-opportunity-bundle="${escapeHtml(item.id)}">Generate bundle</button>
+              <button type="button" data-prompt="${escapeHtml(`Crea un roadmap de 90 días para ${item.title} con ROI, riesgos y responsables para ${clientName.value || "el cliente"}`)}">Usar en chat</button>
+              <button type="button" data-opportunity-bundle="${escapeHtml(item.id)}">Generar bundle</button>
             </div>
           </article>
         `
@@ -321,6 +453,34 @@ async function generateImplementationBundle(opportunityId) {
     buttons.forEach((button) => {
       button.disabled = false;
     });
+  }
+}
+
+async function runOpportunityDiagnosis(question) {
+  const trimmedQuestion = question.trim();
+  if (!trimmedQuestion) {
+    opportunityResult.textContent = "Escribe una situación o usa el diagnóstico rápido.";
+    return;
+  }
+  opportunityButton.disabled = true;
+  opportunityResult.textContent = "Analizando oportunidades y quick wins...";
+  try {
+    const response = await fetch("/opportunities/diagnose", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        question: trimmedQuestion,
+        employee_count: Number(opportunityEmployeeCount.value || "0") || null,
+        top_k: 6,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    renderOpportunityResult(payload);
+  } catch (error) {
+    opportunityResult.textContent = `Error: ${error.message}`;
+  } finally {
+    opportunityButton.disabled = false;
   }
 }
 
@@ -729,31 +889,15 @@ processScannerForm?.addEventListener("submit", async (event) => {
 
 opportunityForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const question = opportunityQuestion.value.trim();
-  if (!question) {
-    opportunityResult.textContent = "Enter a question first.";
-    return;
-  }
-  opportunityButton.disabled = true;
-  opportunityResult.textContent = "Diagnosing opportunities...";
-  try {
-    const response = await fetch("/opportunities/diagnose", {
-      method: "POST",
-      headers: tenantHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        question,
-        employee_count: Number(opportunityEmployeeCount.value || "0") || null,
-        top_k: 6,
-      }),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
-    renderOpportunityResult(payload);
-  } catch (error) {
-    opportunityResult.textContent = `Error: ${error.message}`;
-  } finally {
-    opportunityButton.disabled = false;
-  }
+  await runOpportunityDiagnosis(opportunityQuestion.value);
+});
+
+quickIntakeForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const generatedQuestion = buildQuestionFromQuickIntake();
+  opportunityQuestion.value = generatedQuestion;
+  opportunityEmployeeCount.value = quickEmployeeBand.value || "250";
+  await runOpportunityDiagnosis(generatedQuestion);
 });
 
 runtimePolicyForm?.addEventListener("submit", async (event) => {

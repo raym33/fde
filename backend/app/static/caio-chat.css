@@ -265,6 +265,18 @@ textarea {
   background: #eef6f3;
 }
 
+.advanced-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.advanced-panel summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .tools-status {
   display: grid;
   gap: 7px;
@@ -339,6 +351,10 @@ textarea {
   padding-top: 4px;
 }
 
+.quick-intake-form {
+  gap: 12px;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -372,6 +388,12 @@ textarea {
   border: 1px solid var(--line);
   background: #fff;
   padding: 11px;
+}
+
+.scanner-summary.executive {
+  border-color: #c7dbd1;
+  background: #f7fbf9;
+  box-shadow: var(--shadow-soft);
 }
 
 .scanner-summary strong {
@@ -480,6 +502,83 @@ textarea {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.sales-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 22px 16px;
+}
+
+.sales-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 14px;
+}
+
+.sales-card strong {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.sales-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sales-card-hero {
+  border-color: #c7dbd1;
+  background: #f6faf8;
+}
+
+.executive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.executive-metric {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #deebe4;
+  background: #fff;
+  padding: 10px;
+}
+
+.executive-metric span {
+  color: var(--faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.executive-metric strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.sales-copy {
+  border: 1px dashed #c8d6cf;
+  background: #fff;
+  padding: 10px;
+}
+
+.sales-copy strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.sales-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .intel-explorer {
@@ -902,6 +1001,15 @@ h1 {
   .work-header {
     grid-template-columns: 1fr;
     padding: 18px;
+  }
+
+  .sales-summary {
+    grid-template-columns: 1fr;
+    padding: 12px 18px 16px;
+  }
+
+  .executive-grid {
+    grid-template-columns: 1fr;
   }
 
   .work-header p:last-child {
