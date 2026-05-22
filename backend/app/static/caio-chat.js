@@ -28,6 +28,8 @@ const proposalContent = document.querySelector("#proposalContent");
 const copyProposalButton = document.querySelector("#copyProposalButton");
 const printProposalButton = document.querySelector("#printProposalButton");
 const downloadProposalButton = document.querySelector("#downloadProposalButton");
+const refreshPilotsButton = document.querySelector("#refreshPilotsButton");
+const pilotList = document.querySelector("#pilotList");
 const runtimePolicyForm = document.querySelector("#runtimePolicyForm");
 const runtimePremiumProvider = document.querySelector("#runtimePremiumProvider");
 const runtimeEscalationEnabled = document.querySelector("#runtimeEscalationEnabled");
@@ -61,6 +63,7 @@ let selectedIntelBlock = null;
 let lastKnowledgeQuery = "";
 let lastOpportunityDiagnosis = null;
 let lastExecutiveProposal = null;
+let pilotCache = [];
 let runtimePolicyLoadedForTenant = null;
 let currentAppMode = "pyme";
 
@@ -570,12 +573,162 @@ function renderOpportunityResult(payload) {
             <div class="scanner-actions">
               <button type="button" data-prompt="${escapeHtml(`Crea un roadmap de 90 días para ${item.title} con ROI, riesgos y responsables para ${clientName.value || "el cliente"}`)}">Usar en chat</button>
               <button type="button" data-opportunity-bundle="${escapeHtml(item.id)}">Generar bundle</button>
+              <button type="button" data-opportunity-pilot="${escapeHtml(item.id)}">Crear piloto</button>
             </div>
           </article>
         `
       )
       .join("")}
   `;
+}
+
+function nextPilotStatus(status) {
+  const transitions = {
+    draft: "approved",
+    approved: "in_progress",
+    in_progress: "completed",
+    blocked: "in_progress",
+  };
+  return transitions[status] || "";
+}
+
+function nextPilotStatusLabel(status) {
+  const labels = {
+    draft: "Aprobar",
+    approved: "Iniciar",
+    in_progress: "Completar",
+    blocked: "Reanudar",
+  };
+  return labels[status] || "";
+}
+
+function renderPilots(pilots = pilotCache) {
+  if (!pilotList) return;
+  pilotCache = pilots || [];
+  if (!pilotCache.length) {
+    pilotList.innerHTML = `
+      <p class="proposal-placeholder">
+        Crea un piloto desde una oportunidad recomendada y aparecerá aquí con estado, tareas y siguiente acción.
+      </p>
+    `;
+    return;
+  }
+
+  pilotList.innerHTML = pilotCache
+    .map((pilot) => {
+      const completedTasks = (pilot.tasks || []).filter((task) => task.status === "completed").length;
+      const totalTasks = (pilot.tasks || []).length;
+      const openTask = (pilot.tasks || []).find((task) => task.status !== "completed");
+      const nextStatus = nextPilotStatus(pilot.status);
+      const nextStatusLabel = nextPilotStatusLabel(pilot.status);
+      return `
+        <article class="pilot-card">
+          <div class="scanner-candidate-header">
+            <h3>${escapeHtml(pilot.title)}</h3>
+            <span class="scanner-score">${escapeHtml(pilot.status)}</span>
+          </div>
+          <p>${escapeHtml(pilot.client_name)} · Owner: ${escapeHtml(pilot.owner)}</p>
+          <p>Target: ${escapeHtml(pilot.target_end_date)} · Tasks: ${completedTasks}/${totalTasks}</p>
+          <div class="scanner-pill-row">
+            <span class="scanner-pill">${escapeHtml(pilot.source_type)}</span>
+            <span class="scanner-pill">${escapeHtml((pilot.risks || [])[0] || "risk pending")}</span>
+          </div>
+          ${openTask ? `<p>Next task: ${escapeHtml(openTask.title)}</p>` : `<p>All tasks completed.</p>`}
+          <div class="scanner-actions">
+            ${
+              nextStatus
+                ? `<button type="button" data-pilot-status="${escapeHtml(pilot.id)}" data-next-status="${escapeHtml(nextStatus)}">${escapeHtml(nextStatusLabel)}</button>`
+                : ""
+            }
+            ${
+              openTask
+                ? `<button type="button" data-pilot-task="${escapeHtml(pilot.id)}" data-task-id="${escapeHtml(openTask.id)}">Completar tarea</button>`
+                : ""
+            }
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function loadPilots() {
+  if (!pilotList) return;
+  try {
+    const response = await fetch("/pilots", { headers: tenantHeaders() });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    renderPilots(payload.pilots || []);
+  } catch (error) {
+    pilotList.innerHTML = `<div class="status-line">Pilot load error: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function createPilotFromOpportunity(opportunityId) {
+  if (!lastOpportunityDiagnosis) {
+    opportunityResult.textContent = "Run an opportunity diagnosis first.";
+    return;
+  }
+  const button = opportunityResult.querySelector(`[data-opportunity-pilot="${CSS.escape(opportunityId)}"]`);
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch("/pilots", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        source_type: "diagnosis",
+        diagnosis: lastOpportunityDiagnosis,
+        opportunity_id: opportunityId,
+        owner: "web-user",
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    await loadPilots();
+    const card = button?.closest(".opportunity-card");
+    if (card) {
+      card.insertAdjacentHTML(
+        "beforeend",
+        `<div class="bundle-result"><p><strong>Pilot created.</strong></p><p>${escapeHtml(payload.pilot.title)}</p></div>`
+      );
+    }
+  } catch (error) {
+    opportunityResult.insertAdjacentHTML(
+      "afterbegin",
+      `<div class="status-line">Pilot creation error: ${escapeHtml(error.message)}</div>`
+    );
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function updatePilotStatus(pilotId, status) {
+  try {
+    const response = await fetch(`/pilots/${encodeURIComponent(pilotId)}/status`, {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ status }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    await loadPilots();
+  } catch (error) {
+    pilotList.insertAdjacentHTML("afterbegin", `<div class="status-line">Pilot update error: ${escapeHtml(error.message)}</div>`);
+  }
+}
+
+async function completePilotTask(pilotId, taskId) {
+  try {
+    const response = await fetch(`/pilots/${encodeURIComponent(pilotId)}/tasks/${encodeURIComponent(taskId)}/complete`, {
+      method: "POST",
+      headers: tenantHeaders(),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    await loadPilots();
+  } catch (error) {
+    pilotList.insertAdjacentHTML("afterbegin", `<div class="status-line">Task update error: ${escapeHtml(error.message)}</div>`);
+  }
 }
 
 async function generateImplementationBundle(opportunityId) {
@@ -876,6 +1029,24 @@ document.addEventListener("click", (event) => {
   generateImplementationBundle(button.dataset.opportunityBundle);
 });
 
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-opportunity-pilot]");
+  if (!button) return;
+  createPilotFromOpportunity(button.dataset.opportunityPilot);
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-pilot-status]");
+  if (!button) return;
+  updatePilotStatus(button.dataset.pilotStatus, button.dataset.nextStatus);
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-pilot-task]");
+  if (!button) return;
+  completePilotTask(button.dataset.pilotTask, button.dataset.taskId);
+});
+
 function hydrateRuntimePolicyForm(payload) {
   if (!runtimePolicyForm) return;
   const effective = payload?.effective || {};
@@ -940,6 +1111,7 @@ async function loadToolsStatus() {
 
 loadToolsStatus();
 loadKnowledgeBlocks();
+loadPilots();
 renderKnowledgeSearchResults([], "");
 
 if (scannerArtifacts && !scannerArtifacts.value.trim()) {
@@ -1125,6 +1297,10 @@ downloadProposalButton?.addEventListener("click", () => {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+});
+
+refreshPilotsButton?.addEventListener("click", () => {
+  loadPilots();
 });
 
 runtimePolicyForm?.addEventListener("submit", async (event) => {

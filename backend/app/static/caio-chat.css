@@ -719,6 +719,42 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.pilot-panel {
+  display: grid;
+  gap: 14px;
+  padding: 0 22px 18px;
+}
+
+.pilot-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pilot-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.pilot-card h3,
+.pilot-card p {
+  margin: 0;
+}
+
+.pilot-card h3 {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pilot-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 body[data-app-mode="pyme"] [data-surface~="consultor"],
 body[data-app-mode="pyme"] [data-surface~="tecnico"],
 body[data-app-mode="consultor"] [data-surface~="tecnico"],

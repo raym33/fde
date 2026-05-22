@@ -12,6 +12,7 @@ from app.api import (
     routes_health,
     routes_knowledge,
     routes_opportunities,
+    routes_pilots,
     routes_process_scanner,
     routes_tools,
 )
@@ -59,6 +60,7 @@ app.include_router(routes_chat.router)
 app.include_router(routes_documents.router)
 app.include_router(routes_knowledge.router)
 app.include_router(routes_opportunities.router)
+app.include_router(routes_pilots.router)
 app.include_router(routes_process_scanner.router)
 app.include_router(routes_tools.router)
 app.include_router(labs_router)

@@ -146,6 +146,27 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL,
                 updated_by TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS pilot_projects (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                client_name TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                source_id TEXT,
+                title TEXT NOT NULL,
+                status TEXT NOT NULL,
+                owner TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                target_end_date TEXT NOT NULL,
+                success_metrics_json TEXT NOT NULL,
+                tasks_json TEXT NOT NULL,
+                risks_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_pilot_projects_tenant_status
+                ON pilot_projects(tenant_id, status);
             """
         )
 
