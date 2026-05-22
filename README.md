@@ -713,6 +713,7 @@ Additional repository documentation:
 - [docs/ARCHITECTURE.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/ARCHITECTURE.md)
 - [docs/OPERATIONS.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/OPERATIONS.md)
 - [docs/DEVELOPMENT.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/DEVELOPMENT.md)
+- [docs/ROADMAP.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/ROADMAP.md)
 - [docs/IMPLEMENTATION_ENGINE_EXTENSION.md](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/docs/IMPLEMENTATION_ENGINE_EXTENSION.md)
 
 ## Scope note
