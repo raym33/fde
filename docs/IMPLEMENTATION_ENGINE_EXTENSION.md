@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository can support an optional execution layer on top of the current CAIO, knowledge, and Labs workflows.
+This repository supports an optional execution layer on top of the current CAIO, knowledge, diagnosis, proposal, and Labs workflows.
 
 The core product answers:
 
@@ -38,12 +38,14 @@ The optional extension under `extensions/implementation-engine/` provides:
 3. a launcher that can optionally call an external swarm CLI,
 4. service blueprints for implementation work derived from VirtuDirector outputs.
 
+The main product already uses the same direction through `POST /opportunities/implementation-bundle`, which generates persisted delivery artifacts for the current opportunity diagnosis flow. The extension exists for cases where operators need a broader execution scaffold than the core backend provides.
+
 ## Intended usage
 
 Use the extension when you want to go from:
 
 ```text
-diagnosis -> roadmap -> controlled implementation package
+diagnosis -> executive proposal -> roadmap -> controlled implementation package
 ```
 
 Do not use the extension when you only need:

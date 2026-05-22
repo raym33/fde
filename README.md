@@ -1,26 +1,31 @@
 # VirtuDirector IA
 
-VirtuDirector IA is a FastAPI-based backend and local web application for running an AI operating layer for SMEs. It combines:
+VirtuDirector IA is a local-first FastAPI application for SME AI consulting and prototyping. It combines:
 
-- a CAIO-style chat workspace,
+- a guided operator workspace for SME diagnosis,
 - tenant-scoped document ingestion and retrieval,
 - deterministic opportunity diagnosis,
-- curated intelligence ingestion,
+- executive proposal generation,
+- implementation bundle generation,
+- curated intelligence ingestion and ranked retrieval,
 - local/LAN model routing through LM Studio,
+- optional premium escalation through customer-owned APIs or CLIs,
 - and an FDE Labs subsystem that evaluates changes before they are promoted.
 
-This repository is not a generic chatbot template. It is an operational lab and backend for testing how AI should be introduced, evaluated, and governed inside small and medium-sized businesses.
+This repository is not a generic chatbot template. It is an operational product and engineering lab for deciding where AI should be introduced, packaging pilots, and governing runtime choices inside small and medium-sized businesses.
 
 License: MIT. See [LICENSE](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/LICENSE).
 
 ## Repository purpose
 
-The repository solves four practical problems:
+The repository solves six practical problems:
 
 1. Ingest client documents into a tenant-scoped knowledge layer.
 2. Answer AI implementation questions using deterministic scoring plus curated knowledge.
-3. Run measured lab experiments on RAG, routing, workflows, GRC, ROI, and market intelligence.
-4. Require human approval before promoting a measured improvement.
+3. Turn ranked opportunities into executive proposals and implementation bundles.
+4. Route work across local and optional premium providers under tenant runtime policy.
+5. Run measured lab experiments on RAG, routing, workflows, GRC, ROI, and market intelligence.
+6. Require human approval before promoting a measured improvement.
 
 ## What is included
 
@@ -28,10 +33,11 @@ The repository solves four practical problems:
 
 - `backend/app/main.py`: FastAPI entrypoint.
 - `backend/app/api/`: HTTP routes.
-- `backend/app/core/`: orchestration, opportunity scoring, process scanner, routing.
+- `backend/app/core/`: orchestration, opportunity scoring, executive proposals, process scanner, routing, runtime policy.
 - `backend/app/rag/`: embeddings, ingestion, retriever, local store.
 - `backend/app/knowledge/`: curated knowledge ingestion, compaction, retrieval, ranking.
-- `backend/app/tools/`: web search and LM Studio integration.
+- `backend/app/security/`: PII redaction, sensitivity classification, audit helpers.
+- `backend/app/tools/`: web search, LM Studio, and premium CLI integration.
 - `backend/app/static/`: operator UI and Labs admin UI.
 
 ### FDE Labs
@@ -60,6 +66,12 @@ The product can run in three modes:
 1. `demo_mode=true`: deterministic/demo behavior where external services are optional.
 2. Cloud-assisted mode: external web search and hosted model APIs enabled.
 3. Local/LAN mode: LM Studio provides OpenAI-compatible inference from the local machine or other machines on the LAN.
+
+At the UI level, `/app` supports three product modes:
+
+1. `SME`: guided diagnosis and executive proposal generation.
+2. `Consultant`: diagnosis, implementation bundle generation, and intelligence exploration.
+3. `Technical`: runtime controls, scanner surfaces, and operator diagnostics.
 
 ## Authentication model
 
@@ -267,6 +279,7 @@ See [backend/.env.example](/Users/mac/Documents/Codex/2026-05-20/claude-ha-termi
 
 - `POST /chat`
 - `POST /opportunities/diagnose`
+- `POST /opportunities/executive-proposal`
 - `POST /opportunities/implementation-bundle`
 - `POST /process-scanner/analyze`
 
@@ -292,6 +305,9 @@ See [backend/.env.example](/Users/mac/Documents/Codex/2026-05-20/claude-ha-termi
 - `GET /tools/lm-studio/status`
 - `GET /tools/lm-studio/test`
 - `GET /tools/premium/status`
+- `GET /tools/runtime-policy`
+- `POST /tools/runtime-policy`
+- `POST /tools/sensitivity/analyze`
 
 ### Labs admin routes
 
@@ -318,14 +334,19 @@ Typical usage flow:
 1. Set `Tenant` and `Company`.
 2. Upload client documents under `Documentos cliente`.
 3. Upload curated intelligence under `Intel IA diaria`.
-4. Use one of the preset prompts or write a custom question.
-5. Use `Opportunity workbench` to run a structured diagnosis and generate an implementation bundle from a ranked opportunity.
-6. Use `Explorador intel` to inspect:
+4. Select the product mode (`SME`, `Consultant`, or `Technical`).
+5. Use the guided intake or write a custom question.
+6. Use `Opportunity workbench` to run a structured diagnosis.
+7. Generate:
+   - an executive proposal,
+   - an implementation bundle,
+   - or both.
+8. Use `Explorador intel` to inspect:
    - curated blocks,
    - direct searches,
    - detected query intent,
    - ranking reasons.
-7. Use `Process scanner` to submit structured process descriptions and review candidate automations.
+9. Use `Process scanner` to submit structured process descriptions and review candidate automations.
 
 ### Labs admin: `/admin/labs`
 
@@ -390,6 +411,10 @@ The test suite covers:
 
 - knowledge ranking behavior,
 - explainable search metadata,
+- executive proposal generation,
+- premium escalation behavior,
+- runtime policy behavior,
+- sensitivity classification,
 - lab quality gate behavior,
 - lab persistence,
 - report approval and change application flow.
@@ -463,6 +488,48 @@ Current labs:
 - `grc_eu_ai_act`
 - `market_intelligence`
 
+## Executive proposals and implementation bundles
+
+Two product outputs sit on top of the diagnosis engine:
+
+### Executive proposals
+
+Use `POST /opportunities/executive-proposal` when you need a shareable decision artifact for management.
+
+The proposal payload includes:
+
+- selected opportunity,
+- problem statement,
+- recommended solution,
+- annual benefit estimate,
+- setup and monthly cost ranges,
+- deployment mode,
+- pilot window,
+- quick wins,
+- 90-day roadmap,
+- primary risk,
+- and a concise sales message.
+
+When persistence is enabled, the backend writes:
+
+- `proposal.json`
+- `proposal.html`
+
+under `data/executive_proposals/<timestamp-tenant-opportunity>/`.
+
+### Implementation bundles
+
+Use `POST /opportunities/implementation-bundle` when you want a delivery-ready package for a pilot or prototype.
+
+The bundle generator writes:
+
+- `swarm_input.md`
+- `execution_request.json`
+- `review_checklist.md`
+- `command.txt`
+
+under `data/implementation_bundles/<timestamp-tenant-opportunity>/`.
+
 ## How to add a new lab
 
 1. Add a catalog entry in [backend/app/labs/catalog.py](/Users/mac/Documents/Codex/2026-05-20/claude-ha-terminado-la-respuesta-quiero/backend/app/labs/catalog.py).
@@ -509,6 +576,19 @@ LM_STUDIO_REMOTE_BASE_URLS=http://192.168.x.y:1234/v1,http://192.168.x.z:1234/v1
 - `GET /tools/lm-studio/status`
 - the `Runtime` panel in `/app`
 
+## Runtime policy and premium escalation
+
+Runtime behavior is local-first.
+
+Each tenant can override premium routing and escalation policy without changing global settings.
+
+Relevant routes:
+
+- `GET /tools/runtime-policy`
+- `POST /tools/runtime-policy`
+- `GET /tools/premium/status`
+- `POST /tools/sensitivity/analyze`
+
 ## Optional premium escalation
 
 The application is local-first by default.
@@ -541,7 +621,7 @@ Behavior:
 - cheap and medium tiers can remain local,
 - premium can be routed separately,
 - escalation is disabled by default,
-- sensitive content is blocked from escalation by default,
+- confidential and regulated content is blocked from escalation by default,
 - and `/tools/premium/status` reports whether the selected premium backend is available.
 
 ## Scheduled ingestion agent
@@ -593,7 +673,20 @@ curl -X POST http://127.0.0.1:8000/opportunities/diagnose \
   -d '{"question":"Where should we implement AI first in a 500-employee SME?","employee_count":500}'
 ```
 
-### 4. Run a lab batch as admin
+### 4. Generate an executive proposal
+
+Use the diagnosis response from the previous step as the `diagnosis` field in the request body.
+
+```bash
+curl -X POST http://127.0.0.1:8000/opportunities/executive-proposal \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: tester' \
+  -H 'X-Client-Name: Demo SL' \
+  -d @/absolute/path/to/executive-proposal-request.json
+```
+
+### 5. Run a lab batch as admin
 
 ```bash
 curl -X POST http://127.0.0.1:8000/labs/experiments/run \

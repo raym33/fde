@@ -2,25 +2,26 @@
 
 ## Overview
 
-VirtuDirector IA is a single FastAPI application with three major functional layers:
+VirtuDirector IA is a single FastAPI application with four major functional layers:
 
 1. operator-facing workflows,
 2. knowledge and retrieval infrastructure,
-3. the FDE Labs evaluation and promotion system.
+3. runtime control and delivery packaging,
+4. the FDE Labs evaluation and promotion system.
 
 ## Top-level structure
 
 ```text
 backend/app/
 ├── api/          HTTP routes
-├── core/         orchestration, scoring, routing, process scanner
+├── core/         orchestration, scoring, proposals, bundles, routing, runtime policy
 ├── ingest/       document parsing
 ├── knowledge/    curated knowledge ingestion, compaction, retrieval
 ├── labs/         experiment execution, report lifecycle, change promotion
 ├── rag/          embeddings, retriever, store
-├── security/     audit and PII utilities
+├── security/     audit, PII utilities, sensitivity classification
 ├── static/       web UI assets
-└── tools/        web search and LM Studio integrations
+└── tools/        web search, LM Studio, and premium CLI integrations
 ```
 
 ## Request flow
@@ -31,8 +32,16 @@ backend/app/
 2. `deps.py` resolves the tenant principal.
 3. `core/orchestrator.py` and related modules fetch platform knowledge and client RAG context.
 4. Deterministic scoring logic runs in Python.
-5. Model routing and optional tool usage enrich the response.
+5. Model routing, sensitivity checks, and optional premium escalation enrich the response.
 6. The route returns either JSON or SSE.
+
+### Executive proposal and implementation bundle workflows
+
+1. The request enters through `routes_opportunities.py`.
+2. The route uses a tenant-scoped runtime policy.
+3. `core/executive_proposals.py` or the implementation engine converts a ranked opportunity into a persisted artifact set.
+4. The backend stores output under `data/executive_proposals/` or `data/implementation_bundles/`.
+5. The UI consumes the response immediately and can also reuse the persisted files later.
 
 ### Knowledge ingestion
 
@@ -88,6 +97,13 @@ Ranking factors:
 - query intent inference,
 - optional explanation metadata.
 
+The knowledge explorer in `/app` uses this ranking layer to support:
+
+- sector-specific quick wins,
+- `local vs cloud` decisions,
+- ROI and roadmap retrieval,
+- governance and sensitivity lookups.
+
 When `explain=true` is used on `/knowledge/briefs`, the API returns:
 
 - `query_intent`
@@ -117,6 +133,12 @@ The repository serves two static UIs directly from FastAPI:
 
 No Node or separate frontend build is required.
 
+The `/app` workspace exposes three product modes:
+
+- `SME`: guided diagnosis and executive proposal output,
+- `Consultant`: bundle generation and intelligence exploration,
+- `Technical`: runtime controls, sensitivity-aware escalation, and diagnostics.
+
 ## Design constraints
 
 Important repository constraints:
@@ -125,4 +147,6 @@ Important repository constraints:
 - labs must tolerate isolated evaluator failure,
 - measured changes must not auto-promote,
 - curated knowledge must remain versioned in git and importable into the local DB,
-- local/LAN inference must be usable without changing the HTTP contract.
+- local/LAN inference must be usable without changing the HTTP contract,
+- premium escalation must remain optional and tenant-controlled,
+- and executive outputs must be reproducible from deterministic diagnosis inputs.

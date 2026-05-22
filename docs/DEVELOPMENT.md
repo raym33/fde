@@ -38,6 +38,19 @@ make smoke
 - `backend/app/core/orchestrator.py`
 - `backend/app/api/routes_opportunities.py`
 
+### Change executive proposal generation
+
+- `backend/app/core/executive_proposals.py`
+- `backend/app/api/routes_opportunities.py`
+- `tests/test_executive_proposals.py`
+
+Typical reasons to change this layer:
+
+- revise proposal field mapping,
+- adjust cost or benefit heuristics,
+- change persisted artifact formats,
+- or alter how the UI consumes backend-generated proposal output.
+
 ### Change knowledge ingestion, compaction, or ranking
 
 - `backend/app/knowledge/updates.py`
@@ -66,6 +79,26 @@ make recompact-intel
 - `backend/app/static/caio-chat.html`
 - `backend/app/static/caio-chat.css`
 - `backend/app/static/caio-chat.js`
+
+Important UI surfaces inside `/app`:
+
+- product mode switching (`SME`, `Consultant`, `Technical`),
+- guided diagnosis intake,
+- executive proposal panel,
+- implementation bundle actions,
+- runtime policy controls,
+- explainable intelligence explorer.
+
+### Change runtime policy or premium escalation
+
+- `backend/app/core/runtime_policy.py`
+- `backend/app/core/model_router.py`
+- `backend/app/core/escalation.py`
+- `backend/app/security/sensitivity.py`
+- `backend/app/tools/cli_provider.py`
+- `tests/test_premium_integration.py`
+- `tests/test_runtime_policy.py`
+- `tests/test_sensitivity.py`
 
 ### Change the Labs admin UI
 
@@ -97,6 +130,9 @@ Use this when changing lab logic or introducing a new lab.
 Use this for:
 
 - ranking changes,
+- proposal and bundle generation changes,
+- runtime policy changes,
+- premium escalation changes,
 - persistence changes,
 - report lifecycle changes,
 - route and service behavior covered by tests.

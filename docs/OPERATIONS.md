@@ -74,6 +74,46 @@ curl -X POST http://127.0.0.1:8000/tools/runtime-policy \
   }'
 ```
 
+### Generate an executive proposal from a diagnosis
+
+The usual sequence is:
+
+1. call `/opportunities/diagnose`,
+2. pass the returned diagnosis payload into `/opportunities/executive-proposal`,
+3. optionally persist the resulting HTML and JSON artifacts.
+
+```bash
+curl -X POST http://127.0.0.1:8000/opportunities/executive-proposal \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: ops' \
+  -H 'X-Client-Name: Demo SL' \
+  -d @/absolute/path/to/executive-proposal-request.json
+```
+
+Expected behavior:
+
+- the response includes a normalized proposal payload,
+- the response includes HTML for immediate rendering or download,
+- and, when `persist=true`, the backend writes the artifact set under `data/executive_proposals/`.
+
+### Generate an implementation bundle from a ranked opportunity
+
+```bash
+curl -X POST http://127.0.0.1:8000/opportunities/implementation-bundle \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: ops' \
+  -H 'X-Client-Name: Demo SL' \
+  -d @/absolute/path/to/implementation-bundle-request.json
+```
+
+Expected behavior:
+
+- the response includes the generated files and paths,
+- the backend writes a deterministic bundle under `data/implementation_bundles/`,
+- and the selected service blueprint reflects the chosen opportunity type.
+
 ### Analyze whether content is safe to escalate
 
 ```bash
@@ -156,11 +196,15 @@ Recommended operator sequence:
 1. set the tenant and company in `/app`,
 2. upload client documents,
 3. upload new curated intelligence,
-4. ask a diagnosis or roadmap question,
-5. inspect search-backed intelligence in the explorer,
-6. convert the best candidate into a pilot,
-7. if needed, set a tenant runtime policy override for premium escalation,
-8. evaluate implementation changes through Labs.
+4. choose the product mode:
+   - `SME`
+   - `Consultant`
+   - `Technical`
+5. ask a diagnosis or roadmap question,
+6. inspect search-backed intelligence in the explorer,
+7. generate an executive proposal or implementation bundle,
+8. if needed, set a tenant runtime policy override for premium escalation,
+9. evaluate implementation changes through Labs.
 
 ## Failure handling
 
@@ -195,3 +239,11 @@ Expected behavior:
 - the application does not crash,
 - premium escalation falls back to the local answer path,
 - and the failure remains visible through status and audit trails.
+
+### A route touches runtime policy before the database exists
+
+Expected behavior:
+
+- the runtime policy layer initializes the local SQLite schema on demand,
+- route-level tests do not depend on startup order,
+- and tenant policy resolution falls back to defaults when no override exists.
