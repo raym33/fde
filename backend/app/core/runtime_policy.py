@@ -5,7 +5,7 @@ from contextvars import ContextVar
 from dataclasses import asdict, dataclass
 
 from app.config import get_settings
-from app.core.db import db, utc_now
+from app.core.db import db, init_db, utc_now
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,7 @@ def current_policy() -> RuntimePolicy:
 
 
 def get_tenant_policy(tenant_id: str) -> dict:
+    init_db()
     base = asdict(default_policy())
     with db() as conn:
         row = conn.execute(
@@ -82,6 +83,7 @@ def upsert_tenant_policy(
     escalation_allow_sensitive: bool,
     escalation_allowed_intents: str,
 ) -> dict:
+    init_db()
     with db() as conn:
         conn.execute(
             """
