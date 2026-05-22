@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from app.deps import Principal, get_principal
 from app.config import get_settings
 from app.core import runtime_policy
+from app.core.schemas import RetrievedChunk
+from app.security import sensitivity
 from app.tools import cli_provider
 from app.tools import lm_studio, web_search
 
@@ -20,6 +22,11 @@ class RuntimePolicyRequest(BaseModel):
     escalation_enabled: bool
     escalation_allow_sensitive: bool = False
     escalation_allowed_intents: str = "strategy,grc,solution,opportunity,deliverable"
+
+
+class SensitivityAnalyzeRequest(BaseModel):
+    text: str
+    context_chunks: list[str] = []
 
 
 @router.get("/web-search/status")
@@ -124,3 +131,27 @@ async def runtime_policy_update(
         escalation_allow_sensitive=body.escalation_allow_sensitive,
         escalation_allowed_intents=body.escalation_allowed_intents,
     )
+
+
+@router.post("/sensitivity/analyze")
+async def analyze_sensitivity(
+    body: SensitivityAnalyzeRequest,
+    _principal: Principal = Depends(get_principal),
+) -> dict:
+    chunks = [
+        RetrievedChunk(
+            chunk_id=f"ctx-{index}",
+            document_id=f"context-{index}",
+            text=text,
+            score=1.0,
+            metadata={},
+        )
+        for index, text in enumerate(body.context_chunks, start=1)
+    ]
+    assessment = sensitivity.classify_sensitivity(body.text, chunks)
+    return {
+        "level": assessment.level,
+        "labels": assessment.labels,
+        "reasons": assessment.reasons,
+        "pii_placeholders": assessment.pii_placeholders,
+    }

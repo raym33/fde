@@ -85,3 +85,34 @@ def test_runtime_policy_routes_round_trip(monkeypatch, tmp_path) -> None:
     status_payload = status.json()
     assert status_payload["provider"] == "codex_cli"
     assert status_payload["policy_source"] == "tenant_override"
+
+
+def test_sensitivity_route_returns_regulated(monkeypatch, tmp_path) -> None:
+    _reset_settings(
+        monkeypatch,
+        LABS_SQLITE_PATH=str(tmp_path / "runtime-policy-sensitivity.sqlite3"),
+        LOCAL_LLM_ENABLED="true",
+        PREMIUM_PROVIDER="lmstudio",
+    )
+    init_db()
+    client = TestClient(app)
+    headers = {
+        "X-Tenant-Id": "tenant-runtime",
+        "X-User-Id": "tester",
+        "X-Client-Name": "Tenant Runtime SL",
+    }
+
+    response = client.post(
+        "/tools/sensitivity/analyze",
+        headers=headers,
+        json={
+            "text": "Review this clinic procedure",
+            "context_chunks": [
+                "Historia clínica del paciente con email maria@example.com y expediente asociado."
+            ],
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["level"] == "regulated"
+    assert "pii" in payload["labels"]

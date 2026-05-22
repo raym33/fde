@@ -74,6 +74,21 @@ curl -X POST http://127.0.0.1:8000/tools/runtime-policy \
   }'
 ```
 
+### Analyze whether content is safe to escalate
+
+```bash
+curl -X POST http://127.0.0.1:8000/tools/sensitivity/analyze \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-Id: demo-tenant' \
+  -H 'X-User-Id: ops' \
+  -d '{
+    "text": "Review this clinic workflow",
+    "context_chunks": [
+      "Historia clínica del paciente con email maria@example.com y expediente asociado."
+    ]
+  }'
+```
+
 ### Import curated knowledge
 
 ```bash

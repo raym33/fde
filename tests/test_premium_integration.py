@@ -73,6 +73,14 @@ def test_should_not_escalate_sensitive_content_by_default(monkeypatch) -> None:
         verdict=verdict,
         chunks=chunks,
     )
+    decision = escalation.escalation_decision(
+        intent=Intent.GRC,
+        message="Review this policy",
+        verdict=verdict,
+        chunks=chunks,
+    )
+    assert decision.sensitivity_level == "regulated"
+    assert decision.blocked_reason is not None
 
 
 def test_cli_status_reports_missing_binary(monkeypatch) -> None:

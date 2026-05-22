@@ -14,7 +14,7 @@ import asyncio
 
 from app.config import get_settings
 from app.core.agents import render_prompt, run_agent
-from app.core.escalation import should_escalate
+from app.core.escalation import escalation_decision
 from app.core.model_router import get_router
 from app.core.schemas import (
     INTENT_AGENTS,
@@ -220,13 +220,21 @@ async def run_stream(message: str, tenant_id: str, *, client_name: str, user_id:
             meta={"issues": verdict.issues},
         )
 
-    if should_escalate(intent=intent, message=message, verdict=verdict, chunks=chunks):
+    escalation = escalation_decision(intent=intent, message=message, verdict=verdict, chunks=chunks)
+    escalated = False
+    if escalation.escalate:
         yield ChatChunk(type="status", data="Escalating to premium provider for a reviewed retry…")
         await audit.record(
             tenant_id=tenant_id,
             user_id=user_id,
             action="premium_escalation",
-            detail={"intent": intent.value, "provider": get_settings().premium_provider, "reason": "policy_triggered"},
+            detail={
+                "intent": intent.value,
+                "provider": escalation.provider,
+                "reason": "policy_triggered",
+                "sensitivity_level": escalation.sensitivity_level,
+                "decision_reasons": escalation.reasons,
+            },
         )
         try:
             premium_messages = [
@@ -236,18 +244,28 @@ async def run_stream(message: str, tenant_id: str, *, client_name: str, user_id:
                     "content": user + "\n\nRe-run this task with a frontier-grade model and produce the final answer only.",
                 },
             ]
-            escalated = await get_router().complete(
+            premium_answer = await get_router().complete(
                 messages=premium_messages,
                 tier="premium",
                 temperature=0.1,
             )
-            final = escalated.strip() or final
+            final = premium_answer.strip() or final
+            escalated = True
         except Exception as exc:  # noqa: BLE001
             yield ChatChunk(
                 type="status",
                 data="Premium provider unavailable; keeping the local verified answer.",
                 meta={"error": str(exc)[:300]},
             )
+    elif escalation.blocked_reason:
+        yield ChatChunk(
+            type="status",
+            data=f"Premium escalation skipped: {escalation.blocked_reason}",
+            meta={
+                "sensitivity_level": escalation.sensitivity_level,
+                "reasons": escalation.reasons[:4],
+            },
+        )
 
     # 6. Emisión final (streaming de tokens) -------------------------
     for token in _tokenize(final):
@@ -269,7 +287,13 @@ async def run_stream(message: str, tenant_id: str, *, client_name: str, user_id:
     yield ChatChunk(
         type="final",
         data="",
-        meta={"intent": intent.value, "verified": verdict.approved},
+        meta={
+            "intent": intent.value,
+            "verified": verdict.approved,
+            "escalated": escalated,
+            "sensitivity_level": escalation.sensitivity_level,
+            "escalation_reasons": escalation.reasons[:4],
+        },
     )
 
 
@@ -340,13 +364,21 @@ async def _run_solution(
             meta={"issues": verdict.issues},
         )
 
-    if should_escalate(intent=Intent.SOLUTION, message=message, verdict=verdict, chunks=chunks):
+    escalation = escalation_decision(intent=Intent.SOLUTION, message=message, verdict=verdict, chunks=chunks)
+    escalated = False
+    if escalation.escalate:
         yield ChatChunk(type="status", data="Escalating solution narrative to premium provider…")
         await audit.record(
             tenant_id=tenant_id,
             user_id=user_id,
             action="premium_escalation",
-            detail={"intent": Intent.SOLUTION.value, "provider": get_settings().premium_provider, "reason": "policy_triggered"},
+            detail={
+                "intent": Intent.SOLUTION.value,
+                "provider": escalation.provider,
+                "reason": "policy_triggered",
+                "sensitivity_level": escalation.sensitivity_level,
+                "decision_reasons": escalation.reasons,
+            },
         )
         try:
             final = await get_router().complete(
@@ -357,12 +389,22 @@ async def _run_solution(
                 tier="premium",
                 temperature=0.1,
             )
+            escalated = True
         except Exception as exc:  # noqa: BLE001
             yield ChatChunk(
                 type="status",
                 data="Premium provider unavailable; keeping the local verified solution.",
                 meta={"error": str(exc)[:300]},
             )
+    elif escalation.blocked_reason:
+        yield ChatChunk(
+            type="status",
+            data=f"Premium escalation skipped: {escalation.blocked_reason}",
+            meta={
+                "sensitivity_level": escalation.sensitivity_level,
+                "reasons": escalation.reasons[:4],
+            },
+        )
 
     for token in _tokenize(final):
         yield ChatChunk(type="token", data=token)
@@ -386,6 +428,9 @@ async def _run_solution(
             "use_case": proposal.use_case,
             "recommended": proposal.recommended_id,
             "verified": verdict.approved,
+            "escalated": escalated,
+            "sensitivity_level": escalation.sensitivity_level,
+            "escalation_reasons": escalation.reasons[:4],
         },
     )
 
@@ -435,13 +480,21 @@ async def _run_opportunity(
                 meta={"issues": verdict.issues},
             )
 
-    if should_escalate(intent=Intent.OPPORTUNITY, message=message, verdict=verdict, chunks=chunks):
+    escalation = escalation_decision(intent=Intent.OPPORTUNITY, message=message, verdict=verdict, chunks=chunks)
+    escalated = False
+    if escalation.escalate:
         yield ChatChunk(type="status", data="Escalating opportunity diagnosis to premium provider…")
         await audit.record(
             tenant_id=tenant_id,
             user_id=user_id,
             action="premium_escalation",
-            detail={"intent": Intent.OPPORTUNITY.value, "provider": get_settings().premium_provider, "reason": "policy_triggered"},
+            detail={
+                "intent": Intent.OPPORTUNITY.value,
+                "provider": escalation.provider,
+                "reason": "policy_triggered",
+                "sensitivity_level": escalation.sensitivity_level,
+                "decision_reasons": escalation.reasons,
+            },
         )
         try:
             final = await get_router().complete(
@@ -452,12 +505,22 @@ async def _run_opportunity(
                 tier="premium",
                 temperature=0.1,
             )
+            escalated = True
         except Exception as exc:  # noqa: BLE001
             yield ChatChunk(
                 type="status",
                 data="Premium provider unavailable; keeping the local verified opportunity map.",
                 meta={"error": str(exc)[:300]},
             )
+    elif escalation.blocked_reason:
+        yield ChatChunk(
+            type="status",
+            data=f"Premium escalation skipped: {escalation.blocked_reason}",
+            meta={
+                "sensitivity_level": escalation.sensitivity_level,
+                "reasons": escalation.reasons[:4],
+            },
+        )
 
     for token in _tokenize(final):
         yield ChatChunk(type="token", data=token)
@@ -481,6 +544,9 @@ async def _run_opportunity(
             "intent": Intent.OPPORTUNITY.value,
             "top_opportunities": [o.id for o in diagnosis.top_opportunities[:5]],
             "verified": verdict.approved,
+            "escalated": escalated,
+            "sensitivity_level": escalation.sensitivity_level,
+            "escalation_reasons": escalation.reasons[:4],
         },
     )
 
