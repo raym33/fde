@@ -24,9 +24,21 @@
         <span id="connectionState" class="state-pill">Ready</span>
       </header>
 
+      <section class="mode-strip" aria-label="Modo de uso">
+        <div class="mode-copy">
+          <strong>Modo de trabajo</strong>
+          <span>Cambia la interfaz según quién esté delante: pyme, consultor o técnico.</span>
+        </div>
+        <div class="mode-tabs" id="modeTabs">
+          <button type="button" data-app-mode="pyme" aria-pressed="true">Pyme</button>
+          <button type="button" data-app-mode="consultor" aria-pressed="false">Consultor</button>
+          <button type="button" data-app-mode="tecnico" aria-pressed="false">Técnico</button>
+        </div>
+      </section>
+
       <section class="workspace">
         <aside class="control-rail" aria-label="Controles del workspace">
-          <section class="rail-section client-context" aria-label="Contexto del cliente">
+          <section class="rail-section client-context" aria-label="Contexto del cliente" data-surface="consultor tecnico">
             <div class="section-heading">
               <span>01</span>
               <h2>Cliente</h2>
@@ -41,7 +53,7 @@
             </label>
           </section>
 
-          <section class="rail-section" aria-label="Trabajos habituales">
+          <section class="rail-section" aria-label="Trabajos habituales" data-surface="pyme consultor">
             <div class="section-heading">
               <span>02</span>
               <h2>Diagnóstico rápido</h2>
@@ -99,7 +111,7 @@
             </form>
           </section>
 
-          <section class="rail-section opportunity-panel" aria-label="Opportunity workbench">
+          <section class="rail-section opportunity-panel" aria-label="Opportunity workbench" data-surface="pyme consultor">
             <div class="section-heading">
               <span>03</span>
               <h2>Diagnóstico detallado</h2>
@@ -118,7 +130,7 @@
             <div id="opportunityResult" class="scanner-result"></div>
           </section>
 
-          <section class="rail-section" aria-label="Herramientas conectadas">
+          <section class="rail-section" aria-label="Herramientas conectadas" data-surface="consultor tecnico">
             <div class="section-heading">
               <span>04</span>
               <h2>Runtime</h2>
@@ -158,7 +170,7 @@
             </details>
           </section>
 
-          <section class="rail-section process-scanner-panel" aria-label="Escáner de procesos">
+          <section class="rail-section process-scanner-panel" aria-label="Escáner de procesos" data-surface="consultor tecnico">
             <div class="section-heading">
               <span>05</span>
               <h2>Process scanner</h2>
@@ -195,7 +207,7 @@
             <p id="runtimeMode">Comprobando modelos locales y herramientas...</p>
           </header>
 
-          <section id="salesSummary" class="sales-summary">
+          <section id="salesSummary" class="sales-summary" data-surface="pyme consultor">
             <article class="sales-card sales-card-hero">
               <strong>Qué te llevas</strong>
               <p>Una recomendación inicial, quick wins con ROI, modo local o híbrido sugerido y un primer piloto medible.</p>
@@ -208,6 +220,24 @@
               <strong>Privacidad</strong>
               <p>Local-first: si hace falta, los datos se quedan dentro de la empresa.</p>
             </article>
+          </section>
+
+          <section id="proposalPanel" class="proposal-panel" data-surface="pyme consultor">
+            <div class="proposal-header">
+              <div>
+                <p class="eyebrow">Propuesta para dirección</p>
+                <h2>Resumen ejecutivo listo para compartir</h2>
+              </div>
+              <div class="proposal-actions">
+                <button id="copyProposalButton" type="button">Copiar propuesta</button>
+                <button id="printProposalButton" type="button">Imprimir</button>
+              </div>
+            </div>
+            <div id="proposalContent" class="proposal-content">
+              <p class="proposal-placeholder">
+                Ejecuta un diagnóstico y aquí aparecerá una propuesta breve, clara y enseñable para dirección.
+              </p>
+            </div>
           </section>
 
           <div id="messages" class="messages" aria-live="polite">
@@ -235,7 +265,7 @@
         </section>
 
         <aside class="asset-rail" aria-label="Datos y conocimiento">
-          <section class="rail-section">
+          <section class="rail-section" data-surface="consultor tecnico">
             <div class="section-heading">
               <span>05</span>
               <h2>Documentos cliente</h2>
@@ -247,7 +277,7 @@
             <div id="uploadResult" class="tools-status"></div>
           </section>
 
-          <section class="rail-section">
+          <section class="rail-section" data-surface="consultor tecnico">
             <div class="section-heading">
               <span>06</span>
               <h2>Intel IA diaria</h2>
@@ -261,7 +291,7 @@
             <div id="knowledgeResult" class="tools-status"></div>
           </section>
 
-          <section class="rail-section intel-explorer">
+          <section class="rail-section intel-explorer" data-surface="consultor tecnico">
             <div class="section-heading">
               <span>07</span>
               <h2>Explorador intel</h2>
@@ -282,7 +312,7 @@
             <div id="intelExplorerCards" class="intel-cards" aria-live="polite"></div>
           </section>
 
-          <section class="rail-section operator-note">
+          <section class="rail-section operator-note" data-surface="pyme consultor tecnico">
             <div class="section-heading">
               <span>08</span>
               <h2>Ciclo recomendado</h2>

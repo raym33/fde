@@ -3,6 +3,7 @@ const input = document.querySelector("#messageInput");
 const messages = document.querySelector("#messages");
 const sendButton = document.querySelector("#sendButton");
 const statePill = document.querySelector("#connectionState");
+const modeTabs = document.querySelector("#modeTabs");
 const tenantId = document.querySelector("#tenantId");
 const clientName = document.querySelector("#clientName");
 const toolsStatus = document.querySelector("#toolsStatus");
@@ -23,6 +24,9 @@ const uploadButton = document.querySelector("#uploadButton");
 const uploadResult = document.querySelector("#uploadResult");
 const runtimeMode = document.querySelector("#runtimeMode");
 const salesSummary = document.querySelector("#salesSummary");
+const proposalContent = document.querySelector("#proposalContent");
+const copyProposalButton = document.querySelector("#copyProposalButton");
+const printProposalButton = document.querySelector("#printProposalButton");
 const runtimePolicyForm = document.querySelector("#runtimePolicyForm");
 const runtimePremiumProvider = document.querySelector("#runtimePremiumProvider");
 const runtimeEscalationEnabled = document.querySelector("#runtimeEscalationEnabled");
@@ -56,6 +60,7 @@ let selectedIntelBlock = null;
 let lastKnowledgeQuery = "";
 let lastOpportunityDiagnosis = null;
 let runtimePolicyLoadedForTenant = null;
+let currentAppMode = "pyme";
 
 const DEFAULT_SCANNER_ARTIFACTS = `Procedimiento facturas | procedure | ERP | 300/mes
 Administración recibe facturas de proveedores por email, descarga PDF, copia importe, IVA, NIF e IBAN en Excel y valida manualmente en ERP.
@@ -79,6 +84,15 @@ function setBusy(isBusy) {
   sendButton.disabled = isBusy;
   statePill.textContent = isBusy ? "Thinking" : "Ready";
   statePill.classList.toggle("busy", isBusy);
+}
+
+function setAppMode(mode) {
+  currentAppMode = mode;
+  document.body.dataset.appMode = mode;
+  const buttons = modeTabs?.querySelectorAll("[data-app-mode]") || [];
+  buttons.forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.appMode === mode));
+  });
 }
 
 function addMessage(role, html) {
@@ -244,6 +258,10 @@ function eurosValue(value) {
   return `${Number(value).toLocaleString("en-IE")} EUR`;
 }
 
+function firstNonEmpty(items = []) {
+  return items.find((item) => String(item || "").trim()) || "No definido todavía";
+}
+
 function rangeMidpoint(range) {
   if (!Array.isArray(range) || range.length !== 2) return 0;
   return Math.round((Number(range[0]) + Number(range[1])) / 2);
@@ -362,6 +380,80 @@ function renderSalesSummaryFromDiagnosis(diagnosis, opportunities) {
   `;
 }
 
+function proposalTextFromDiagnosis(diagnosis, opportunities) {
+  const top = opportunities[0];
+  const quickWins = opportunityLabels(diagnosis.quick_wins, diagnosis);
+  const roadmapDay30 = diagnosis.roadmap_90_days?.[0];
+  return [
+    `Propuesta para dirección — ${clientName.value || "Cliente"}`,
+    "",
+    `Recomendación principal: ${top?.title || "Pendiente de diagnóstico"}`,
+    `Problema prioritario: ${top?.problem || "Pendiente de diagnóstico"}`,
+    `Beneficio anual estimado: ${eurosRange(top?.annual_benefit_eur || [0, 0])}`,
+    `Setup inicial estimado: ${eurosRange(top?.setup_cost_eur || [0, 0])}`,
+    `Coste mensual estimado: ${eurosRange(top?.monthly_cost_eur || [0, 0])}`,
+    `Modo recomendado: ${deploymentRecommendation()}`,
+    `Primer piloto: ${pilotWindow(top)}`,
+    `Quick wins: ${quickWins.join(", ") || "Ninguno"}`,
+    `Siguiente paso: ${roadmapDay30?.focus || top?.first_experiment || "Lanzar un piloto acotado y medible."}`,
+    `Riesgo principal: ${firstNonEmpty(top?.risks)}`,
+  ].join("\n");
+}
+
+function renderProposalFromDiagnosis(diagnosis, opportunities) {
+  if (!proposalContent) return;
+  const top = opportunities[0];
+  const quickWins = opportunityLabels(diagnosis.quick_wins, diagnosis);
+  const strategic = opportunityLabels(diagnosis.strategic_bets, diagnosis);
+  const roadmap = diagnosis.roadmap_90_days || [];
+  proposalContent.innerHTML = `
+    <div class="proposal-grid">
+      <article class="proposal-block">
+        <strong>Problema a resolver</strong>
+        <p>${escapeHtml(top?.problem || "Pendiente de diagnóstico")}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Recomendación principal</strong>
+        <p>${escapeHtml(top?.title || "Pendiente de diagnóstico")}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Impacto esperado</strong>
+        <p>Beneficio anual estimado: ${escapeHtml(eurosRange(top?.annual_benefit_eur || [0, 0]))}</p>
+        <p>Setup inicial: ${escapeHtml(eurosRange(top?.setup_cost_eur || [0, 0]))}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Despliegue recomendado</strong>
+        <p>${escapeHtml(deploymentRecommendation())}</p>
+        <p>Piloto inicial: ${escapeHtml(pilotWindow(top))}</p>
+      </article>
+      <article class="proposal-block wide">
+        <strong>Quick wins</strong>
+        <ul>
+          ${quickWins.slice(0, 3).map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>Sin quick wins definidos todavía.</li>"}
+        </ul>
+      </article>
+      <article class="proposal-block wide">
+        <strong>Roadmap de 90 días</strong>
+        <ul>
+          ${roadmap.slice(0, 3).map((item) => `<li><strong>${escapeHtml(item.phase || "Fase")}:</strong> ${escapeHtml(item.focus || "")}</li>`).join("") || "<li>Pendiente de definición.</li>"}
+        </ul>
+      </article>
+      <article class="proposal-block">
+        <strong>Riesgo principal</strong>
+        <p>${escapeHtml(firstNonEmpty(top?.risks))}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Siguiente decisión</strong>
+        <p>${escapeHtml(firstNonEmpty(strategic) || top?.first_experiment || "Validar un piloto medible.")}</p>
+      </article>
+      <article class="proposal-block wide">
+        <strong>Mensaje comercial</strong>
+        <p>${escapeHtml(clientName.value || "La empresa")} debería empezar por ${escapeHtml((top?.title || "esta iniciativa").toLowerCase())} porque combina valor claro, riesgo controlado y un piloto lanzable en ${escapeHtml(pilotWindow(top))}.</p>
+      </article>
+    </div>
+  `;
+}
+
 function renderOpportunityResult(payload) {
   const diagnosis = payload?.diagnosis;
   if (!diagnosis) {
@@ -371,6 +463,7 @@ function renderOpportunityResult(payload) {
   lastOpportunityDiagnosis = diagnosis;
   const opportunities = (diagnosis.top_opportunities || []).slice(0, 3);
   renderSalesSummaryFromDiagnosis(diagnosis, opportunities);
+  renderProposalFromDiagnosis(diagnosis, opportunities);
   opportunityResult.innerHTML = `
     <div class="scanner-summary executive">
       <strong>Resumen ejecutivo</strong>
@@ -900,6 +993,28 @@ quickIntakeForm?.addEventListener("submit", async (event) => {
   await runOpportunityDiagnosis(generatedQuestion);
 });
 
+modeTabs?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-app-mode]");
+  if (!button) return;
+  setAppMode(button.dataset.appMode || "pyme");
+});
+
+copyProposalButton?.addEventListener("click", async () => {
+  if (!lastOpportunityDiagnosis) return;
+  const opportunities = (lastOpportunityDiagnosis.top_opportunities || []).slice(0, 3);
+  const text = proposalTextFromDiagnosis(lastOpportunityDiagnosis, opportunities);
+  try {
+    await navigator.clipboard.writeText(text);
+    addStatus("Propuesta copiada al portapapeles.");
+  } catch (error) {
+    addStatus(`No pude copiar la propuesta: ${error.message}`);
+  }
+});
+
+printProposalButton?.addEventListener("click", () => {
+  window.print();
+});
+
 runtimePolicyForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   runtimePolicyButton.disabled = true;
@@ -936,3 +1051,5 @@ clientName?.addEventListener("change", () => {
     loadToolsStatus();
   }
 });
+
+setAppMode("pyme");

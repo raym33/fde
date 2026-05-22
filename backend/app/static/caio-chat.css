@@ -57,7 +57,7 @@ a {
 
 .app-shell {
   display: grid;
-  grid-template-rows: 58px minmax(0, 1fr);
+  grid-template-rows: 58px auto minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -151,6 +151,53 @@ a {
   border-color: #c5d0df;
   background: #eef3f8;
   color: var(--blue);
+}
+
+.mode-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fbfa;
+  padding: 12px 20px;
+}
+
+.mode-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.mode-copy strong {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.mode-copy span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.mode-tabs button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.mode-tabs button[aria-pressed="true"],
+.mode-tabs button:hover {
+  border-color: var(--accent);
+  background: #eef6f3;
+  color: var(--ink);
 }
 
 .workspace {
@@ -581,6 +628,105 @@ textarea {
   line-height: 1.5;
 }
 
+.proposal-panel {
+  display: grid;
+  gap: 14px;
+  padding: 0 22px 18px;
+}
+
+.proposal-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.proposal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.proposal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.proposal-actions button {
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.proposal-actions button:hover {
+  border-color: var(--accent);
+  background: #eef6f3;
+}
+
+.proposal-content {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.proposal-placeholder {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.proposal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.proposal-block {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #deebe4;
+  background: #fcfdfc;
+  padding: 12px;
+}
+
+.proposal-block strong {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.proposal-block p,
+.proposal-block li {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.proposal-block ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.proposal-block.wide {
+  grid-column: 1 / -1;
+}
+
+body[data-app-mode="pyme"] [data-surface~="consultor"],
+body[data-app-mode="pyme"] [data-surface~="tecnico"],
+body[data-app-mode="consultor"] [data-surface~="tecnico"],
+body[data-app-mode="tecnico"] [data-surface~="pyme"],
+body[data-app-mode="tecnico"] [data-surface~="consultor"] {
+  display: none !important;
+}
+
 .intel-explorer {
   gap: 10px;
 }
@@ -975,6 +1121,12 @@ h1 {
     padding: 12px;
   }
 
+  .mode-strip {
+    flex-direction: column;
+    align-items: start;
+    padding: 12px;
+  }
+
   .top-nav {
     min-height: 0;
     overflow-x: auto;
@@ -1009,6 +1161,19 @@ h1 {
   }
 
   .executive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .proposal-panel {
+    padding: 0 18px 18px;
+  }
+
+  .proposal-header {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .proposal-grid {
     grid-template-columns: 1fr;
   }
 
