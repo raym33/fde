@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.core import executive_proposals
 from app.core import implementation_engine
 from app.core import opportunities
 from app.core import runtime_policy
@@ -26,6 +27,12 @@ class OpportunityBundleRequest(BaseModel):
     employee_count: int | None = None
     top_k: int = 8
     review: bool = True
+
+
+class ExecutiveProposalRequest(BaseModel):
+    diagnosis: opportunities.OpportunityDiagnosis
+    opportunity_id: str | None = None
+    persist: bool = True
 
 
 @router.post("/diagnose")
@@ -91,4 +98,28 @@ async def create_implementation_bundle(
     return {
         "opportunity": opportunity.model_dump(),
         "bundle": bundle,
+    }
+
+
+@router.post("/executive-proposal")
+async def create_executive_proposal(
+    body: ExecutiveProposalRequest,
+    principal: Principal = Depends(get_principal),
+) -> dict:
+    with runtime_policy.activate_tenant_policy(principal.tenant_id):
+        proposal = executive_proposals.build_proposal(
+            tenant_id=principal.tenant_id,
+            client_name=principal.client_name,
+            diagnosis=body.diagnosis,
+            selected_opportunity_id=body.opportunity_id,
+        )
+        artifacts = (
+            executive_proposals.persist_proposal(proposal)
+            if body.persist
+            else None
+        )
+    return {
+        "proposal": proposal.model_dump(),
+        "html": executive_proposals.render_proposal_html(proposal),
+        "artifacts": artifacts,
     }

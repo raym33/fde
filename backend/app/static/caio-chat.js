@@ -27,6 +27,7 @@ const salesSummary = document.querySelector("#salesSummary");
 const proposalContent = document.querySelector("#proposalContent");
 const copyProposalButton = document.querySelector("#copyProposalButton");
 const printProposalButton = document.querySelector("#printProposalButton");
+const downloadProposalButton = document.querySelector("#downloadProposalButton");
 const runtimePolicyForm = document.querySelector("#runtimePolicyForm");
 const runtimePremiumProvider = document.querySelector("#runtimePremiumProvider");
 const runtimeEscalationEnabled = document.querySelector("#runtimeEscalationEnabled");
@@ -59,6 +60,7 @@ let knowledgeBlocks = [];
 let selectedIntelBlock = null;
 let lastKnowledgeQuery = "";
 let lastOpportunityDiagnosis = null;
+let lastExecutiveProposal = null;
 let runtimePolicyLoadedForTenant = null;
 let currentAppMode = "pyme";
 
@@ -454,6 +456,80 @@ function renderProposalFromDiagnosis(diagnosis, opportunities) {
   `;
 }
 
+function renderBackendProposal(payload) {
+  if (!proposalContent || !payload?.proposal) return;
+  lastExecutiveProposal = payload;
+  const proposal = payload.proposal;
+  const quickWins = proposal.quick_wins || [];
+  const strategic = proposal.strategic_bets || [];
+  const roadmap = proposal.roadmap_90_days || [];
+  proposalContent.innerHTML = `
+    <div class="proposal-grid">
+      <article class="proposal-block">
+        <strong>Problema a resolver</strong>
+        <p>${escapeHtml(proposal.problem_statement)}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Recomendación principal</strong>
+        <p>${escapeHtml(proposal.selected_opportunity_title)}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Impacto esperado</strong>
+        <p>Beneficio anual estimado: ${escapeHtml(eurosRange(proposal.annual_benefit_eur))}</p>
+        <p>Setup inicial: ${escapeHtml(eurosRange(proposal.setup_cost_eur))}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Despliegue recomendado</strong>
+        <p>${escapeHtml(proposal.deployment_mode)}</p>
+        <p>Piloto inicial: ${escapeHtml(proposal.pilot_window)}</p>
+      </article>
+      <article class="proposal-block wide">
+        <strong>Quick wins</strong>
+        <ul>
+          ${quickWins.slice(0, 3).map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>Sin quick wins definidos todavía.</li>"}
+        </ul>
+      </article>
+      <article class="proposal-block wide">
+        <strong>Roadmap de 90 días</strong>
+        <ul>
+          ${roadmap.slice(0, 3).map((item) => `<li><strong>${escapeHtml(item.name || item.phase || "Fase")}:</strong> ${escapeHtml(item.deliverable || item.focus || "")}</li>`).join("") || "<li>Pendiente de definición.</li>"}
+        </ul>
+      </article>
+      <article class="proposal-block">
+        <strong>Riesgo principal</strong>
+        <p>${escapeHtml(proposal.primary_risk)}</p>
+      </article>
+      <article class="proposal-block">
+        <strong>Siguiente decisión</strong>
+        <p>${escapeHtml(proposal.first_step)}</p>
+      </article>
+      <article class="proposal-block wide">
+        <strong>Mensaje comercial</strong>
+        <p>${escapeHtml(proposal.sales_message)}</p>
+      </article>
+    </div>
+  `;
+}
+
+async function generateExecutiveProposal(diagnosis, selectedOpportunityId) {
+  try {
+    const response = await fetch("/opportunities/executive-proposal", {
+      method: "POST",
+      headers: tenantHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        diagnosis,
+        opportunity_id: selectedOpportunityId,
+        persist: true,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+    renderBackendProposal(payload);
+  } catch (error) {
+    addStatus(`No pude generar la propuesta ejecutiva: ${error.message}`);
+  }
+}
+
 function renderOpportunityResult(payload) {
   const diagnosis = payload?.diagnosis;
   if (!diagnosis) {
@@ -464,6 +540,9 @@ function renderOpportunityResult(payload) {
   const opportunities = (diagnosis.top_opportunities || []).slice(0, 3);
   renderSalesSummaryFromDiagnosis(diagnosis, opportunities);
   renderProposalFromDiagnosis(diagnosis, opportunities);
+  if (opportunities[0]?.id) {
+    generateExecutiveProposal(diagnosis, opportunities[0].id);
+  }
   opportunityResult.innerHTML = `
     <div class="scanner-summary executive">
       <strong>Resumen ejecutivo</strong>
@@ -1000,11 +1079,27 @@ modeTabs?.addEventListener("click", (event) => {
 });
 
 copyProposalButton?.addEventListener("click", async () => {
-  if (!lastOpportunityDiagnosis) return;
-  const opportunities = (lastOpportunityDiagnosis.top_opportunities || []).slice(0, 3);
-  const text = proposalTextFromDiagnosis(lastOpportunityDiagnosis, opportunities);
+  const text = lastExecutiveProposal?.proposal
+    ? [
+        `Propuesta para dirección — ${lastExecutiveProposal.proposal.client_name}`,
+        "",
+        `Recomendación principal: ${lastExecutiveProposal.proposal.selected_opportunity_title}`,
+        `Problema prioritario: ${lastExecutiveProposal.proposal.problem_statement}`,
+        `Beneficio anual estimado: ${eurosRange(lastExecutiveProposal.proposal.annual_benefit_eur)}`,
+        `Setup inicial estimado: ${eurosRange(lastExecutiveProposal.proposal.setup_cost_eur)}`,
+        `Coste mensual estimado: ${eurosRange(lastExecutiveProposal.proposal.monthly_cost_eur)}`,
+        `Modo recomendado: ${lastExecutiveProposal.proposal.deployment_mode}`,
+        `Primer piloto: ${lastExecutiveProposal.proposal.pilot_window}`,
+        `Siguiente paso: ${lastExecutiveProposal.proposal.first_step}`,
+        `Riesgo principal: ${lastExecutiveProposal.proposal.primary_risk}`,
+      ].join("\n")
+    : null;
+  if (!text && !lastOpportunityDiagnosis) return;
+  const fallback = !text && lastOpportunityDiagnosis
+    ? proposalTextFromDiagnosis(lastOpportunityDiagnosis, (lastOpportunityDiagnosis.top_opportunities || []).slice(0, 3))
+    : text;
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(fallback);
     addStatus("Propuesta copiada al portapapeles.");
   } catch (error) {
     addStatus(`No pude copiar la propuesta: ${error.message}`);
@@ -1013,6 +1108,23 @@ copyProposalButton?.addEventListener("click", async () => {
 
 printProposalButton?.addEventListener("click", () => {
   window.print();
+});
+
+downloadProposalButton?.addEventListener("click", () => {
+  const html = lastExecutiveProposal?.html;
+  if (!html) {
+    addStatus("Todavía no hay una propuesta exportable.");
+    return;
+  }
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${clientName.value || "propuesta"}-executive-proposal.html`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 });
 
 runtimePolicyForm?.addEventListener("submit", async (event) => {
